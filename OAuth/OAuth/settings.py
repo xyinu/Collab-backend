@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django.contrib.sites',
     'microsoft_auth',
-    'quickstart'
+    'quickstart',
 ]
 
 SITE_ID = 1

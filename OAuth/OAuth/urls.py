@@ -22,5 +22,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('microsoft/', include('microsoft_auth.urls', namespace='microsoft')),
-    path('', include('quickstart.urls', namespace='models'))
+    path('', include('quickstart.urls', namespace='models')),
 ]

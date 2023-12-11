@@ -82,3 +82,17 @@ class FAQ(models.Model):
 
     def __str__(self):
         return self.title
+    
+class UserAccess(models.Model):
+    email=models.CharField(primary_key=True)
+    access_type = (
+        ('TA', 'TA'),
+        ('Prof', 'Prof'),
+    )
+    access = models.CharField(max_length=40,
+                              choices=access_type,
+                              default='TA'
+                              )
+
+    def __str__(self):
+        return self.email
