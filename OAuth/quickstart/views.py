@@ -1,12 +1,12 @@
-from .serializers import UserCreateSerializer
+from .serializers import UserCreateSerializer, CreateAccessSerializer
 from django.shortcuts import render, redirect
-from .models import Student, StudentGroup, Task, Thread, Ticket, FAQ, Course, Group
+from .models import Student, StudentGroup, Task, Thread, Ticket, FAQ, Course, Group, UserAccess
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.utils import timezone
-from rest_framework import status
 import pandas as pd 
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.db.models import Q
 # Create your views here.
 
 
@@ -21,17 +21,19 @@ class getUser(APIView):
 class login(APIView):
 
     def get(self, request):
-        print(request.user.id)
         if(not request.user.id):
             response = redirect('http://localhost:8000/microsoft/to-auth-redirect/?next=/login')
             return response
         else:
-            refresh = RefreshToken.for_user(request.user)
+            if(UserAccess.objects.all().filter(Q(email=request.user.email))): #check if work
+                refresh = RefreshToken.for_user(request.user)
 
-            return Response({
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            })
+                return Response({
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                })
+            else:
+                return Response({'unsuccessful':'unsuccessful'})
     
 class createClass(APIView):
 
@@ -72,3 +74,14 @@ class createClass(APIView):
                     i+=1
             i+=1
         return Response({'success':'success'})
+    
+class createAccess(APIView):
+
+    def post(self, request):
+        # serializer = CreateAccessSerializer(data=request.data)
+        [access,created]=UserAccess.objects.get_or_create(email=request.data['email'], access=request.data['access'])
+        #need send email
+        if(created):
+            return Response({'success':'created and emailed'})
+        else:
+            return Response({'success':'already created, emailed again'})
