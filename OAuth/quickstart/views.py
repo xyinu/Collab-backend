@@ -1,6 +1,6 @@
-from .serializers import UserCreateSerializer, CreateAccessSerializer
+from .serializers import UserCreateSerializer, AccessSerializer, TaskSerializer, TicketSerializer, ThreadSerializer
 from django.shortcuts import render, redirect
-from .models import Student, StudentGroup, Task, Thread, Ticket, FAQ, Course, Group, UserAccess
+from .models import Student, StudentGroup, Task, Thread, Ticket, FAQ, Course, Group, UserAccess, User
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.utils import timezone
@@ -25,7 +25,8 @@ class login(APIView):
             response = redirect('http://localhost:8000/microsoft/to-auth-redirect/?next=/login')
             return response
         else:
-            if(UserAccess.objects.all().filter(Q(email=request.user.email))): #check if work
+            print(request.user.email)
+            if(User.objects.all().filter(Q(email=request.user.email))): #check if work
                 refresh = RefreshToken.for_user(request.user)
 
                 return Response({
@@ -78,10 +79,90 @@ class createClass(APIView):
 class createAccess(APIView):
 
     def post(self, request):
-        # serializer = CreateAccessSerializer(data=request.data)
+        # serializer = AccessSerializer(data=request.data)
         [access,created]=UserAccess.objects.get_or_create(email=request.data['email'], access=request.data['access'])
         #need send email
         if(created):
             return Response({'success':'created and emailed'})
         else:
             return Response({'success':'already created, emailed again'})
+
+class createTask(APIView):
+
+    def post(self, request):
+        prof=User.objects.get(email=request.data['prof'])
+        ta=User.objects.get(email=request.data['ta'])
+        task=Task.objects.create(prof=prof, 
+                                 TA=ta, 
+                                 date=timezone.now(), 
+                                 title=request.data['title'], 
+                                 details=request.data['details'],
+                                 dueDate=request.data['dueDate'],
+                                 status="ongoing")
+        serializer = TaskSerializer(task)
+        return Response(serializer.data)
+
+    def put(self, request):
+        task=Task.objects.get(id=request.data['id'])
+        task.title=request.data['title']
+        task.details=request.data['details']
+        task.dueDate=request.data['dueDate']
+        task.save()
+        serializer = TaskSerializer(task)
+        return Response(serializer.data)
+
+    
+class completeTask(APIView):
+    def post(self,request):
+        task=Task.objects.get(id=request.data['id'])
+        task.status='completed'
+        serializer = TaskSerializer(task)
+        return Response(serializer.data)
+
+class createTicket(APIView):
+
+    def post(self, request):
+        prof=User.objects.get(email=request.data['prof'])
+        ta=User.objects.get(email=request.data['ta'])
+        task=Ticket.objects.create(prof=prof, 
+                                 TA=ta, 
+                                 date=timezone.now(), 
+                                 title=request.data['title'], 
+                                 details=request.data['details'],
+                                 category=request.data['category'],
+                                 severity=request.data['severity'],
+                                 status="ongoing")
+        serializer = TicketSerializer(task)
+        return Response(serializer.data)
+
+    def put(self, request):
+        task=Ticket.objects.get(id=request.data['id'])
+        task.title=request.data['title']
+        task.details=request.data['details']
+        task.category=request.data['category']
+        task.severity=request.data['severity']
+        task.save()
+        serializer = TicketSerializer(task)
+        return Response(serializer.data)
+    
+class completeTicket(APIView):
+    def post(self,request):
+        task=Ticket.objects.get(id=request.data['id'])
+        task.status='completed'
+        serializer = TicketSerializer(task)
+        return Response(serializer.data)
+    
+class createThread(APIView):
+
+    def post(self, request):
+        user=User.objects.get(email=request.data['user'])
+        ticket=Ticket.objects.get(id=request.data['id'])
+        thread=Thread.objects.create( 
+                                 by=user, 
+                                 date=timezone.now(), 
+                                 details=request.data['details'],
+                                 ticket=ticket,
+                                 )
+        serializer = ThreadSerializer(thread)
+        return Response(serializer.data)
+

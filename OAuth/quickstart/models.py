@@ -69,11 +69,14 @@ class Ticket(models.Model):
         return self.title
 
 class Thread(models.Model):
-    date=models.DateTimeField()
-    Ticket = models.ForeignKey(
+    date= models.DateTimeField()
+    Ticket= models.ForeignKey(
         Ticket, on_delete=models.CASCADE, blank=True, null=True
     )
     details=models.TextField()
+    by= models.ForeignKey(
+        User,on_delete=models.CASCADE, blank=True, null=True
+    )
 
 
 class FAQ(models.Model):
