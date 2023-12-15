@@ -11,7 +11,15 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+
+EMAIL_USER = os.getenv('EMAIL_USER')
+EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
+MICROSOFT_CLIENT_SECRET = os.getenv('MICROSOFT_CLIENT_SECRET')
+MICROSOFT_CLIENT_ID = os.getenv('MICROSOFT_CLIENT_ID')
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -123,8 +131,8 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # values you got from step 2 from your Mirosoft app
-MICROSOFT_AUTH_CLIENT_ID = 'cd3ccf40-4227-404a-a2ff-e8eec1adfd82'
-MICROSOFT_AUTH_CLIENT_SECRET = '~hR8Q~Lj8w5LAr6SjzDpMcgH1d6RsKOHNnXBebED'
+MICROSOFT_AUTH_CLIENT_ID = MICROSOFT_CLIENT_ID
+MICROSOFT_AUTH_CLIENT_SECRET = MICROSOFT_CLIENT_SECRET
 # Tenant ID is also needed for single tenant applications
 # MICROSOFT_AUTH_TENANT_ID = 'your-tenant-id-from-apps.dev.microsoft.com'
 
@@ -145,6 +153,13 @@ USE_I18N = True
 
 USE_TZ = True
 
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = EMAIL_USER
+EMAIL_HOST_PASSWORD = EMAIL_PASSWORD
+EMAIL_PORT = 587
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/

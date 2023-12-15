@@ -35,4 +35,4 @@ class ThreadSerializer(serializers.ModelSerializer):
     ticketTitle= serializers.CharField(source='Ticket.title')
     class Meta:
         model = Thread
-        fields = ['date', 'by', 'ticketTitle', 'details',]
+        fields = ['id', 'date', 'by', 'ticketTitle', 'details',]

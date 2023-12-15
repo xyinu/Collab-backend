@@ -12,6 +12,5 @@ urlpatterns = [
     path('completetask/', completeTask.as_view(), name='completeTask'),
     path('createticket/', createTicket.as_view(), name='createTicket'),
     path('completeticket/', completeTicket.as_view(), name='completeTicket'),
-    path('createthread/', createThread.as_view(), name='createThead')
-
+    path('createthread/', createThread.as_view(), name='createThead'),
 ]
