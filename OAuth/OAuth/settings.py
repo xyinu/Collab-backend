@@ -124,11 +124,15 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-AUTHENTICATION_BACKENDS = [
-    'microsoft_auth.backends.MicrosoftAuthenticationBackend',
-    'django.contrib.auth.backends.ModelBackend' # if you also want to use Django's authentication
-    # I recommend keeping this with at least one database superuser in case of unable to use others
-]
+# REST FRAMEWORK CONFIGURATION
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'quickstart.management.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSIONS_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
 
 # values you got from step 2 from your Mirosoft app
 MICROSOFT_AUTH_CLIENT_ID = MICROSOFT_CLIENT_ID

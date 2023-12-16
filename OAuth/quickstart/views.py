@@ -8,10 +8,13 @@ import pandas as pd
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Q
 from django.core.mail import send_mail
+from rest_framework.permissions import IsAuthenticated
+
 # Create your views here.
 
 
 class getUser(APIView):
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user=request.user
@@ -38,6 +41,7 @@ class login(APIView):
                 return Response({'unsuccessful':'unsuccessful'})
     
 class createClass(APIView):
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         excel_file = request.FILES['excel_file']
@@ -78,6 +82,7 @@ class createClass(APIView):
         return Response({'success':'success'})
     
 class createAccess(APIView):
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         [access,created]=UserAccess.objects.get_or_create(email=request.data['email'], access=request.data['access'])
@@ -100,6 +105,7 @@ class createAccess(APIView):
             return Response({'success':'already created, emailed again'})
 
 class createTask(APIView):
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         prof=User.objects.get(email=request.data['prof'])
@@ -125,6 +131,8 @@ class createTask(APIView):
 
     
 class completeTask(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self,request):
         task=Task.objects.get(id=request.data['id'])
         task.status='completed'
@@ -132,6 +140,7 @@ class completeTask(APIView):
         return Response(serializer.data)
 
 class createTicket(APIView):
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         prof=User.objects.get(email=request.data['prof'])
@@ -158,6 +167,8 @@ class createTicket(APIView):
         return Response(serializer.data)
     
 class completeTicket(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self,request):
         ticket=Ticket.objects.get(id=request.data['id'])
         ticket.status='completed'
@@ -165,6 +176,7 @@ class completeTicket(APIView):
         return Response(serializer.data)
     
 class createThread(APIView):
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         user=User.objects.get(email=request.data['user'])
