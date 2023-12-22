@@ -19,7 +19,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
             return None
 
         jwt_token = JWTAuthentication.get_the_token_from_header(jwt_token)  # clean the token
-        url = "https://login.microsoftonline.com/common/discovery/keys"
+        url = "https://login.microsoftonline.com/common/discovery/v2.0/keys"
         optional_custom_headers = {"User-agent": "custom-user-agent"}
         jwks_client = PyJWKClient(url, headers=optional_custom_headers)
         signing_key = jwks_client.get_signing_key_from_jwt(jwt_token)

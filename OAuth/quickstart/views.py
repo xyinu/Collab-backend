@@ -8,7 +8,7 @@ import pandas as pd
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Q
 from django.core.mail import send_mail
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 
 # Create your views here.
 
@@ -37,14 +37,17 @@ class getUser(APIView):
 #         serializer = UserCreateSerializer(user)
 #         return Response(serializer.data)
 class login(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        # user=request.user
-        # user.name=request.auth['name']
-        # user.save()
-        User.objects.create_superuser('admin@gmail.com','admin','admin')
-        return Response({"success":f"successfully signed up for {request.auth['name']}"})
+        user=request.user
+        if(not user.name):
+            user.name=request.auth['name']
+            user.save()
+            return Response({"success":f"Successfully signed up for {request.auth['name']}"})
+        else:
+            return Response({"success":f"Already signed up for {request.auth['name']}"})
+
     
 class getClass(APIView):
     permission_classes = [IsAuthenticated]
@@ -99,25 +102,22 @@ class createAccess(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        return
-        # [access,created]=UserAccess.objects.get_or_create(email=request.data['email'], access=request.data['access'])
-        # prof=User.objects.get(email=request.data['prof'])
-        # ta=request.data['ta']
-        # #need send email
-        # try:
-        #     send_mail(
-        #         'sign up for TA collaboration service',
-        #         f'Dear {ta}, you have been allocated by {prof.last_name}, please click on link to sign up ...',
-        #         'hello@account.com',
-        #         ['igc21.xunyi@gmail.com'],
-        #     )
-        # except Exception as error:
-        #     print(error)
-        #     return Response({'failure':'sending of email fail'})
-        # if(created):
-        #     return Response({'success':'created and emailed'})
-        # else:
-        #     return Response({'success':'already created, emailed again'})
+        [user,created]=User.objects.get_or_create(email=request.data['email'], user_type=request.data['access'])
+        prof=request.user
+        #need send email
+        try:
+            send_mail(
+                'sign up for TA collaboration service',
+                f'You have been allocated by {prof.name}, please click on link to sign up ...',
+                'hello@account.com',
+                ['igc21.xunyi@gmail.com'],
+            )
+        except Exception as error:
+            return Response({'failure':'sending of email fail'})
+        if(created):
+            return Response({'success':'created and emailed'})
+        else:
+            return Response({'success':'already created, emailed again'})
 
 class getTask(APIView):
     permission_classes = [IsAuthenticated]
