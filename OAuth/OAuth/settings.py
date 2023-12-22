@@ -35,6 +35,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = [ 'localhost', 'example.com', '127.0.0.1']
 
+# CORS_ALLOW_ALL_ORIGINS=True
+
+# CORS_ALLOW_CREDENTIALS = True
 
 # Application definition
 
@@ -46,14 +49,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'django.contrib.sites',
-    'microsoft_auth',
     'quickstart',
+    'corsheaders'
 ]
 
 SITE_ID = 1
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -62,6 +65,14 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# CORS_ALLOWED_ORIGINS = [
+#     'http://localhost:8000',
+#     'http://localhost:5173',
+#     'http'
+# ]
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = 'OAuth.urls'
 
@@ -76,7 +87,6 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'microsoft_auth.context_processors.microsoft',
             ],
         },
     },
@@ -134,16 +144,7 @@ REST_FRAMEWORK = {
     ),
 }
 
-# values you got from step 2 from your Mirosoft app
-MICROSOFT_AUTH_CLIENT_ID = MICROSOFT_CLIENT_ID
-MICROSOFT_AUTH_CLIENT_SECRET = MICROSOFT_CLIENT_SECRET
-# Tenant ID is also needed for single tenant applications
-# MICROSOFT_AUTH_TENANT_ID = 'your-tenant-id-from-apps.dev.microsoft.com'
-
-# pick one MICROSOFT_AUTH_LOGIN_TYPE value
-# Microsoft authentication
-# include Microsoft Accounts, Office 365 Enterpirse and Azure AD accounts
-MICROSOFT_AUTH_LOGIN_TYPE = 'ma'
+AUTH_USER_MODEL = 'quickstart.User'
 
 
 # Internationalization

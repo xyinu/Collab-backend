@@ -5,6 +5,7 @@ charset-normalizer==3.3.2
 cryptography==41.0.7
 defusedxml==0.8.0rc2
 Django==4.2.3
+django-cors-headers==4.3.1
 django-filter==23.5
 django-microsoft-auth==3.0.1
 django-templated-mail==1.1.1
@@ -18,6 +19,7 @@ psycopg2==2.9.9
 pycparser==2.21
 PyJWT==2.8.0
 python-dateutil==2.8.2
+python-dotenv==1.0.0
 python3-openid==3.2.0
 pytz==2023.3.post1
 requests==2.31.0

@@ -1,6 +1,6 @@
-from .serializers import UserCreateSerializer, AccessSerializer, TaskSerializer, TicketSerializer, ThreadSerializer
+from .serializers import UserCreateSerializer,  TaskSerializer, TicketSerializer, ThreadSerializer, ClassSerializer, CourseSerializer, TicketThreadSerializer
 from django.shortcuts import render, redirect
-from .models import Student, StudentGroup, Task, Thread, Ticket, FAQ, Course, Group, UserAccess, User
+from .models import Student, StudentGroup, Task, Thread, Ticket, FAQ, Course, Group, User
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.utils import timezone
@@ -8,7 +8,7 @@ import pandas as pd
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Q
 from django.core.mail import send_mail
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 # Create your views here.
 
@@ -21,34 +21,48 @@ class getUser(APIView):
         serializer = UserCreateSerializer(user)
         return Response(serializer.data)
     
+# class getTAs(APIView):
+#     permission_classes = [IsAuthenticated]
 
+#     def get(self, request):
+        
+#         serializer = UserCreateSerializer(user)
+#         return Response(serializer.data)
+
+# class getProf(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+#         user=request.user
+#         serializer = UserCreateSerializer(user)
+#         return Response(serializer.data)
 class login(APIView):
+    permission_classes = [AllowAny]
 
-    def get(self, request):
-        if(not request.user.id):
-            response = redirect('http://localhost:8000/microsoft/to-auth-redirect/?next=/login')
-            return response
-        else:
-            print(request.user.email)
-            if(User.objects.all().filter(Q(email=request.user.email))): #check if work
-                refresh = RefreshToken.for_user(request.user)
-
-                return Response({
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                })
-            else:
-                return Response({'unsuccessful':'unsuccessful'})
+    def post(self, request):
+        # user=request.user
+        # user.name=request.auth['name']
+        # user.save()
+        User.objects.create_superuser('admin@gmail.com','admin','admin')
+        return Response({"success":f"successfully signed up for {request.auth['name']}"})
     
+class getClass(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request):
+        course=Course.objects.all()
+        serializer=CourseSerializer(course,many=True)
+        return Response(serializer.data)
+
 class createClass(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        excel_file = request.FILES['excel_file']
+        excel_file = request.FILES['file']
         df= pd.read_excel(excel_file,header=None)
         course_code=df.iloc[2][0].split()[1]
         class_type=df.iloc[3][0].split()[2]
-        [current_course, created]=Course.objects.get_or_create(code=course_code,name=course_code)
+        [current_course, created]=Course.objects.get_or_create(code=course_code,name=request.data['course_name'])
 
         i=0
         tempgroup=''
@@ -85,32 +99,40 @@ class createAccess(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        [access,created]=UserAccess.objects.get_or_create(email=request.data['email'], access=request.data['access'])
-        prof=User.objects.get(email=request.data['prof'])
-        ta=request.data['ta']
-        #need send email
-        try:
-            send_mail(
-                'sign up for TA collaboration service',
-                f'Dear {ta}, you have been allocated by {prof.last_name}, please click on link to sign up ...',
-                'hello@account.com',
-                ['igc21.xunyi@gmail.com'],
-            )
-        except Exception as error:
-            print(error)
-            return Response({'failure':'sending of email fail'})
-        if(created):
-            return Response({'success':'created and emailed'})
-        else:
-            return Response({'success':'already created, emailed again'})
+        return
+        # [access,created]=UserAccess.objects.get_or_create(email=request.data['email'], access=request.data['access'])
+        # prof=User.objects.get(email=request.data['prof'])
+        # ta=request.data['ta']
+        # #need send email
+        # try:
+        #     send_mail(
+        #         'sign up for TA collaboration service',
+        #         f'Dear {ta}, you have been allocated by {prof.last_name}, please click on link to sign up ...',
+        #         'hello@account.com',
+        #         ['igc21.xunyi@gmail.com'],
+        #     )
+        # except Exception as error:
+        #     print(error)
+        #     return Response({'failure':'sending of email fail'})
+        # if(created):
+        #     return Response({'success':'created and emailed'})
+        # else:
+        #     return Response({'success':'already created, emailed again'})
 
+class getTask(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        task=Task.objects.all().filter(prof=request.user)
+        serializer = TaskSerializer(task,many=True)
+        return Response(serializer.data)
+    
 class createTask(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        prof=User.objects.get(email=request.data['prof'])
         ta=User.objects.get(email=request.data['ta'])
-        task=Task.objects.create(prof=prof, 
+        task=Task.objects.create(prof=request.user, 
                                  TA=ta, 
                                  date=timezone.now(), 
                                  title=request.data['title'], 
@@ -139,19 +161,36 @@ class completeTask(APIView):
         serializer = TaskSerializer(task)
         return Response(serializer.data)
 
+class getTicket(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        ticket=Ticket.objects.all().filter(TA=request.user)
+        serializer = TicketSerializer(ticket,many=True)
+        return Response(serializer.data)
+    
+class getTicketWithThread (APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        ticket=Ticket.objects.all().filter(TA=request.user)
+        serializer = TicketThreadSerializer(ticket,many=True)
+        return Response(serializer.data)
+
 class createTicket(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         prof=User.objects.get(email=request.data['prof'])
-        ta=User.objects.get(email=request.data['ta'])
+        student=Student.objects.get(VMS=request.data['student'])
         task=Ticket.objects.create(prof=prof, 
-                                 TA=ta, 
+                                 TA=request.user, 
                                  date=timezone.now(), 
                                  title=request.data['title'], 
                                  details=request.data['details'],
                                  category=request.data['category'],
                                  severity=request.data['severity'],
+                                 student=student,
                                  status="ongoing")
         serializer = TicketSerializer(task)
         return Response(serializer.data)
@@ -175,14 +214,23 @@ class completeTicket(APIView):
         serializer = TicketSerializer(ticket)
         return Response(serializer.data)
     
+class getThread(APIView):
+    permission_classes = [IsAuthenticated]  
+
+    def get(self, request, id):
+        ticket=Ticket.objects.get(id=id)
+        thread=Thread.objects.all().filter(Ticket=ticket)
+        serializer = ThreadSerializer(thread,many=True)
+        return Response(serializer.data)
+    
 class createThread(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        user=User.objects.get(email=request.data['user'])
+        print(request.data)
         ticket=Ticket.objects.get(id=request.data['id'])
         thread=Thread.objects.create( 
-                                 by=user, 
+                                 by=request.user, 
                                  date=timezone.now(), 
                                  details=request.data['details'],
                                  Ticket=ticket,

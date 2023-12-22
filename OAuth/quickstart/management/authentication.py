@@ -1,13 +1,7 @@
-# apps/management/authentication.py
-
-from datetime import datetime, timedelta
-
 import jwt
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import authentication
 from rest_framework.exceptions import AuthenticationFailed, ParseError
-from ..models import UserAccess
 User = get_user_model()
 from dotenv import load_dotenv
 import os
@@ -44,18 +38,13 @@ class JWTAuthentication(authentication.BaseAuthentication):
 
         # Get the user from the database
         email = payload.get('preferred_username')
-        name = payload.get('name')
-        # if aud != 
 
         if email is None:
             raise AuthenticationFailed('User identifier not found in JWT')
 
         user = User.objects.filter(email=email).first()
         if user is None:
-            access=UserAccess.objects.filter(email=email).first()
-            if access is None:
-                raise AuthenticationFailed('User not found')
-            User.objects.create(email=email,first_name=name)
+            raise AuthenticationFailed('User not found')
 
         # Return the user and token payload
         return user, payload

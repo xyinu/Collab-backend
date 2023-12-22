@@ -1,5 +1,54 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.utils import timezone
+class UserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        """Create user by email, name, password"""
+        
+        if not email:
+            raise ValueError('User must have an email!')
+        user = self.model(email=self.normalize_email(
+            email), **extra_fields)
+        user.set_password(password)
+        user.save(using=self.db)
+        return user
+
+    def create_superuser(self, email, name, password):
+        """Create superuser by email, name, password"""
+        user = self.create_user(email=email, name=name, password=password)
+        user.is_superuser = True
+        user.is_staff = True
+        user.is_admin = True
+        user.save(using=self.db)
+
+        return user
+
+class User(AbstractBaseUser, PermissionsMixin):
+    """Custom User model"""
+    USERNAME_FIELD = 'email'
+
+    email = models.EmailField(unique=True)
+    name = models.CharField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    is_admin = models.BooleanField(default=False)
+    User_Type = (
+        ('TA', 'TA'),
+        ('Prof', 'Prof'),
+    )
+    user_type = models.CharField(max_length=40,
+                                 choices=User_Type,
+                                 default='TA'
+                                 )
+    created_at = models.DateTimeField(default=timezone.now)
+
+    objects = UserManager()
+
+    def __str__(self):
+        return self.email
+
+    def __repr__(self):
+        return f"{self.email!r}, {self.is_staff!r}, {self.is_active!r}, "
 
 class Student(models.Model):
     VMS = models.CharField(max_length=20) 
@@ -22,7 +71,7 @@ class Course(models.Model):
 class Group(models.Model):
     code = models.CharField(max_length=20) 
     type = models.CharField(max_length=20)
-    course_code=models.ForeignKey(Course, on_delete=models.CASCADE)
+    course_code=models.ForeignKey(Course, related_name="course_group",on_delete=models.CASCADE)
 
     class Meta:
         unique_together = ('code', 'type',)
@@ -31,8 +80,8 @@ class Group(models.Model):
         return self.code
 
 class StudentGroup(models.Model):
-    group=models.ForeignKey(Group, on_delete=models.CASCADE)
-    student=models.ForeignKey(Student, on_delete=models.CASCADE)
+    group=models.ForeignKey(Group,related_name='group', on_delete=models.CASCADE)
+    student=models.ForeignKey(Student, related_name='student',on_delete=models.CASCADE)
     
 
 class Task(models.Model):
@@ -59,6 +108,9 @@ class Ticket(models.Model):
     prof = models.ForeignKey(
         User,  related_name='Ticket_prof',on_delete=models.CASCADE, blank=True, null=True
     )
+    student = models.ForeignKey(
+        Student,  related_name='Ticket_student',on_delete=models.CASCADE, blank=True, null=True
+    )
     details=models.TextField()
     title=models.CharField(max_length=50)
     status=models.CharField(max_length=20)
@@ -71,7 +123,7 @@ class Ticket(models.Model):
 class Thread(models.Model):
     date= models.DateTimeField()
     Ticket= models.ForeignKey(
-        Ticket, on_delete=models.CASCADE, blank=True, null=True
+        Ticket, related_name='ticket_thread',on_delete=models.CASCADE, blank=True, null=True
     )
     details=models.TextField()
     by= models.ForeignKey(
@@ -86,16 +138,3 @@ class FAQ(models.Model):
     def __str__(self):
         return self.title
     
-class UserAccess(models.Model):
-    email=models.CharField(primary_key=True)
-    access_type = (
-        ('TA', 'TA'),
-        ('Prof', 'Prof'),
-    )
-    access = models.CharField(max_length=40,
-                              choices=access_type,
-                              default='TA'
-                              )
-
-    def __str__(self):
-        return self.email
