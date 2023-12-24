@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.utils import timezone
 import pandas as pd 
-from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Q
 from django.core.mail import send_mail
 from rest_framework.permissions import IsAuthenticated
@@ -140,6 +139,19 @@ class getTask(APIView):
             task=Task.objects.all().filter(TA=request.user, status='ongoing')
             serializer = TaskSerializer(task,many=True)
             return Response(serializer.data)
+        
+class getCompletedTask(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        task=Task.objects.all().filter(prof=request.user, status='completed')
+        if(task):
+            serializer = TaskSerializer(task,many=True)
+            return Response(serializer.data)
+        else:
+            task=Task.objects.all().filter(TA=request.user, status='completed')
+            serializer = TaskSerializer(task,many=True)
+            return Response(serializer.data)
     
 class createTask(APIView):
     permission_classes = [IsAuthenticated]
@@ -199,15 +211,28 @@ class getTicketWithThread (APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        ticket=Ticket.objects.all().filter(prof=request.user, status='ongoing')
+        ticket=Ticket.objects.all().filter(Q(prof=request.user)& ~Q(status='completed'))
         if(ticket):
             serializer = TicketThreadSerializer(ticket,many=True)
             return Response(serializer.data)
         else:
-            ticket=Ticket.objects.all().filter(TA=request.user, status='ongoing')
+            ticket=Ticket.objects.all().filter(Q(TA=request.user)& ~Q(status='completed'))
             serializer = TicketThreadSerializer(ticket,many=True)
             return Response(serializer.data)
 
+class getCompletedTicketWithThread (APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        ticket=Ticket.objects.all().filter(prof=request.user, status='completed')
+        if(ticket):
+            serializer = TicketThreadSerializer(ticket,many=True)
+            return Response(serializer.data)
+        else:
+            ticket=Ticket.objects.all().filter(TA=request.user, status='completed')
+            serializer = TicketThreadSerializer(ticket,many=True)
+            return Response(serializer.data)
+        
 class createTicket(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -226,7 +251,7 @@ class createTicket(APIView):
                                  severity=request.data['severity'],
                                  student=student,
                                  upload=file,
-                                 status="ongoing")
+                                 status=request.user.name)
         serializer = TicketSerializer(task)
         return Response(serializer.data)
 
@@ -263,8 +288,9 @@ class createThread(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        print(request.data)
         ticket=Ticket.objects.get(id=request.data['id'])
+        ticket.status=request.user.name
+        ticket.save()
         thread=Thread.objects.create( 
                                  by=request.user, 
                                  date=timezone.now(), 
@@ -281,3 +307,28 @@ class createThread(APIView):
         serializer = ThreadSerializer(thread)
         return Response(serializer.data)
 
+class count(APIView):
+    permission_classes = [IsAuthenticated]
+ 
+    def get(self, request):
+        ticketcompleted=Ticket.objects.all().filter(prof=request.user, status='completed')
+        if(ticketcompleted):
+            ticketcompleted=Ticket.objects.all().filter(prof=request.user, status='completed').count()
+            ticketbyuser=Ticket.objects.all().filter(Q(prof=request.user) & Q(status=request.user.name)).count()
+            ticketbyother=Ticket.objects.all().filter(Q(prof=request.user) & ~Q(status=request.user.name) & ~Q(status='completed')).count()
+            taskcompleted=Task.objects.all().filter(prof=request.user, status='completed').count()
+            taskongoing=Task.objects.all().filter(Q(prof=request.user) & ~Q(status='completed')).count()  
+            return Response({
+                'ticket':[ticketbyuser,ticketbyother,ticketcompleted],
+                'task':[taskongoing,taskcompleted]
+            })      
+        else:
+            ticketcompleted=Ticket.objects.all().filter(TA=request.user, status='completed').count()
+            ticketbyuser=Ticket.objects.all().filter(Q(TA=request.user) & Q(status=request.user.name)).count()
+            ticketbyother=Ticket.objects.all().filter(Q(TA=request.user) & ~Q(status=request.user.name) & ~Q(status='completed')).count()
+            taskcompleted=Task.objects.all().filter(TA=request.user, status='completed').count()
+            taskongoing=Task.objects.all().filter(Q(TA=request.user) & ~Q(status='completed')).count()
+            return Response({
+                'ticket':[ticketbyuser,ticketbyother,ticketcompleted],
+                'task':[taskongoing,taskcompleted]
+            })
