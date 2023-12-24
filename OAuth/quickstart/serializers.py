@@ -11,8 +11,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
         fields = ['email', 'first_name', 'last_name']
 
 class TaskSerializer(serializers.ModelSerializer):
-    TA = serializers.CharField(source='TA.first_name')
-    prof= serializers.CharField(source='prof.first_name')
+    TA = serializers.CharField(source='TA.name')
+    prof= serializers.CharField(source='prof.name')
     class Meta:
         model = Task
         fields = ['id','date', 'TA', 'prof', 'title', 'details', 'dueDate', 'status']
@@ -51,24 +51,29 @@ class CourseSerializer(serializers.ModelSerializer):
         fields = ['code', 'name','group']
 
 class TicketSerializer(serializers.ModelSerializer):
-    TA = serializers.CharField(source='TA.first_name')
-    prof= serializers.CharField(source='prof.first_name')
+    TA = serializers.CharField(source='TA.name')
+    prof= serializers.CharField(source='prof.name')
     student=StudentSerializer()
     class Meta:
         model = Ticket
         fields = ['id','date', 'TA', 'prof', 'student','title', 'details', 'category', 'severity', 'status']
 
 class ThreadSerializer(serializers.ModelSerializer):
-    by=serializers.CharField(source='by.first_name')
+    by=serializers.CharField(source='by.name')
     class Meta:
         model = Thread
         fields = ['by', 'details', 'date']
 
 class TicketThreadSerializer(serializers.ModelSerializer):
-    TA = serializers.CharField(source='TA.first_name')
-    prof= serializers.CharField(source='prof.first_name')
+    TA = serializers.CharField(source='TA.name')
+    prof= serializers.CharField(source='prof.name')
     student=StudentSerializer()
     thread = ThreadSerializer(source='ticket_thread',many=True)
     class Meta:
         model = Ticket
-        fields = ['id','date', 'TA', 'prof', 'student','title', 'details', 'category', 'severity', 'status','thread']
+        fields = ['id','date', 'TA', 'prof', 'student','title', 'details', 'category', 'severity', 'status','thread','upload']
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['name','email']

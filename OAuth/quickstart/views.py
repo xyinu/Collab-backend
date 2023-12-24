@@ -1,4 +1,4 @@
-from .serializers import UserCreateSerializer,  TaskSerializer, TicketSerializer, ThreadSerializer, ClassSerializer, CourseSerializer, TicketThreadSerializer
+from .serializers import UserCreateSerializer,  UserSerializer,TaskSerializer, TicketSerializer, ThreadSerializer, StudentSerializer, CourseSerializer, TicketThreadSerializer
 from django.shortcuts import render, redirect
 from .models import Student, StudentGroup, Task, Thread, Ticket, FAQ, Course, Group, User
 from rest_framework.response import Response
@@ -21,21 +21,30 @@ class getUser(APIView):
         serializer = UserCreateSerializer(user)
         return Response(serializer.data)
     
-# class getTAs(APIView):
-#     permission_classes = [IsAuthenticated]
+class getTAs(APIView):
+    permission_classes = [IsAuthenticated]
 
-#     def get(self, request):
+    def get(self, request):
+        ta=User.objects.filter(user_type='TA')
+        serializer = UserSerializer(ta,many=True)
+        return Response(serializer.data)
+
+class getProf(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        prof=User.objects.filter(user_type='Prof')
+        serializer = UserSerializer(prof,many=True)
+        return Response(serializer.data)
+
+class getStudent(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        student=Student.objects.filter()
+        serializer = StudentSerializer(student,many=True)
+        return Response(serializer.data)
         
-#         serializer = UserCreateSerializer(user)
-#         return Response(serializer.data)
-
-# class getProf(APIView):
-#     permission_classes = [IsAuthenticated]
-
-#     def get(self, request):
-#         user=request.user
-#         serializer = UserCreateSerializer(user)
-#         return Response(serializer.data)
 class login(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -123,24 +132,35 @@ class getTask(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        task=Task.objects.all().filter(prof=request.user)
-        serializer = TaskSerializer(task,many=True)
-        return Response(serializer.data)
+        task=Task.objects.all().filter(prof=request.user, status='ongoing')
+        if(task):
+            serializer = TaskSerializer(task,many=True)
+            return Response(serializer.data)
+        else:
+            task=Task.objects.all().filter(TA=request.user, status='ongoing')
+            serializer = TaskSerializer(task,many=True)
+            return Response(serializer.data)
     
 class createTask(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        ta=User.objects.get(email=request.data['ta'])
-        task=Task.objects.create(prof=request.user, 
-                                 TA=ta, 
-                                 date=timezone.now(), 
-                                 title=request.data['title'], 
-                                 details=request.data['details'],
-                                 dueDate=request.data['dueDate'],
-                                 status="ongoing")
-        serializer = TaskSerializer(task)
-        return Response(serializer.data)
+        tas=request.data['tas']
+        file=None
+        if 'file' in request.FILES:
+            file = request.FILES['file']
+
+        for ta in tas:
+            User_Ta=User.objects.get(email=ta)
+            Task.objects.create(prof=request.user, 
+                                    TA=User_Ta, 
+                                    date=timezone.now(), 
+                                    title=request.data['title'], 
+                                    details=request.data['details'],
+                                    dueDate=request.data['dueDate'],
+                                    upload=file,
+                                    status="ongoing"),
+        return Response({"success":"success"})
 
     def put(self, request):
         task=Task.objects.get(id=request.data['id'])
@@ -158,6 +178,7 @@ class completeTask(APIView):
     def post(self,request):
         task=Task.objects.get(id=request.data['id'])
         task.status='completed'
+        task.save()
         serializer = TaskSerializer(task)
         return Response(serializer.data)
 
@@ -165,17 +186,27 @@ class getTicket(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        ticket=Ticket.objects.all().filter(TA=request.user)
-        serializer = TicketSerializer(ticket,many=True)
-        return Response(serializer.data)
+        ticket=Ticket.objects.all().filter(prof=request.user, status='ongoing')
+        if(ticket):
+            serializer = TicketSerializer(ticket,many=True)
+            return Response(serializer.data)
+        else:
+            ticket=Ticket.objects.all().filter(TA=request.user, status='ongoing')
+            serializer = TicketSerializer(ticket,many=True)
+            return Response(serializer.data)
     
 class getTicketWithThread (APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        ticket=Ticket.objects.all().filter(TA=request.user)
-        serializer = TicketThreadSerializer(ticket,many=True)
-        return Response(serializer.data)
+        ticket=Ticket.objects.all().filter(prof=request.user, status='ongoing')
+        if(ticket):
+            serializer = TicketThreadSerializer(ticket,many=True)
+            return Response(serializer.data)
+        else:
+            ticket=Ticket.objects.all().filter(TA=request.user, status='ongoing')
+            serializer = TicketThreadSerializer(ticket,many=True)
+            return Response(serializer.data)
 
 class createTicket(APIView):
     permission_classes = [IsAuthenticated]
@@ -183,6 +214,9 @@ class createTicket(APIView):
     def post(self, request):
         prof=User.objects.get(email=request.data['prof'])
         student=Student.objects.get(VMS=request.data['student'])
+        file=None
+        if 'file' in request.FILES:
+            file = request.FILES['file']
         task=Ticket.objects.create(prof=prof, 
                                  TA=request.user, 
                                  date=timezone.now(), 
@@ -191,6 +225,7 @@ class createTicket(APIView):
                                  category=request.data['category'],
                                  severity=request.data['severity'],
                                  student=student,
+                                 upload=file,
                                  status="ongoing")
         serializer = TicketSerializer(task)
         return Response(serializer.data)
@@ -211,6 +246,7 @@ class completeTicket(APIView):
     def post(self,request):
         ticket=Ticket.objects.get(id=request.data['id'])
         ticket.status='completed'
+        ticket.save()
         serializer = TicketSerializer(ticket)
         return Response(serializer.data)
     

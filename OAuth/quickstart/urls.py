@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import getUser, createClass, login, createAccess, createTask, createTicket, createThread, completeTask,completeTicket,getTicket,getTask,getClass,getThread, getTicketWithThread
+from .views import getUser, createClass, login, createAccess, createTask, createTicket, createThread, completeTask,completeTicket,getTicket,getTask,getClass,getThread, getTicketWithThread,getProf,getStudent,getTAs
 
 app_name = 'quickstart'
 
@@ -18,4 +18,8 @@ urlpatterns = [
     path('completeticket/', completeTicket.as_view(), name='completeTicket'),
     path('thread/<id>', getThread.as_view(), name='getThread'),
     path('createthread/', createThread.as_view(), name='createThead'),
+    path('prof/', getProf.as_view(), name='getProf'),
+    path('student/', getStudent.as_view(), name='getStudent'),
+    path('ta/', getTAs.as_view(), name='getTAs'),
+
 ]
