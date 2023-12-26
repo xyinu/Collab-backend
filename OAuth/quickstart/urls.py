@@ -1,10 +1,11 @@
 from django.urls import path
-from .views import getUser, createClass, login, createAccess, createTask, createTicket, createThread, completeTask,completeTicket,getTicket,getTask,getClass,getThread, getTicketWithThread,getProf,getStudent,getTAs, getCompletedTask, getCompletedTicketWithThread,count
+from .views import getUser, getUserType,createClass, login, createAccess, createTask, createTicket, createThread, completeTask,completeTicket,getTicket,getTask,getClass,getThread, getTicketWithThread,getProf,getStudent,getTAs, getCompletedTask, getCompletedTicketWithThread,count
 
 app_name = 'quickstart'
 
 urlpatterns = [
     path('user/', getUser.as_view(), name='getUser'),
+    path('usertype/', getUserType.as_view(), name='getUserType'),
     path('class/', getClass.as_view(), name='getClass'),
     path('createclass/', createClass.as_view(), name='createClass'),
     path('login/', login.as_view(), name='login'),

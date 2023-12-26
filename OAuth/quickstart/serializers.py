@@ -2,7 +2,6 @@ from rest_framework import serializers
 from .models import User, Task, Ticket, Thread, StudentGroup, Group,Student, Course
 from django.utils import timezone, dateformat
 from django.db.models import Q
-from django.core.mail import send_mail
 
 class UserCreateSerializer(serializers.ModelSerializer):
 

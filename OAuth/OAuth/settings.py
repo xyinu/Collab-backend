@@ -16,8 +16,6 @@ import os
 
 load_dotenv()
 
-EMAIL_USER = os.getenv('EMAIL_USER')
-EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
 MICROSOFT_CLIENT_SECRET = os.getenv('MICROSOFT_CLIENT_SECRET')
 MICROSOFT_CLIENT_ID = os.getenv('MICROSOFT_CLIENT_ID')
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -158,13 +156,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = EMAIL_USER
-EMAIL_HOST_PASSWORD = EMAIL_PASSWORD
-EMAIL_PORT = 587
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/

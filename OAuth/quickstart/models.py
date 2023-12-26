@@ -74,7 +74,7 @@ class Group(models.Model):
     course_code=models.ForeignKey(Course, related_name="course_group",on_delete=models.CASCADE)
 
     class Meta:
-        unique_together = ('code', 'type',)
+        unique_together = ('code', 'type','course_code')
 
     def __str__(self):
         return self.code

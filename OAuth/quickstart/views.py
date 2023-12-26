@@ -8,17 +8,34 @@ import pandas as pd
 from django.db.models import Q
 from django.core.mail import send_mail
 from rest_framework.permissions import IsAuthenticated
+from dotenv import load_dotenv
+import os
+from azure.communication.email import EmailClient
 
-# Create your views here.
-
+load_dotenv()
+connection_string = os.getenv('CONNECTION_STRING')
+email_client = EmailClient.from_connection_string(connection_string)
 
 class getUser(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        user=request.user
-        serializer = UserCreateSerializer(user)
-        return Response(serializer.data)
+        userTA=User.objects.all().filter(user_type='TA')
+        serializerTA = UserSerializer(userTA,many=True)
+        userProf=User.objects.all().filter(user_type='Prof')
+        serializerProf = UserSerializer(userProf,many=True)
+
+        return Response({
+            'TA':serializerTA.data,
+            'prof':serializerProf.data
+        })
+    
+class getUserType(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        userType=request.user.user_type
+        return Response({"type":userType})
     
 class getTAs(APIView):
     permission_classes = [IsAuthenticated]
@@ -114,13 +131,24 @@ class createAccess(APIView):
         prof=request.user
         #need send email
         try:
-            send_mail(
-                'sign up for TA collaboration service',
-                f'You have been allocated by {prof.name}, please click on link to sign up ...',
-                'hello@account.com',
-                ['igc21.xunyi@gmail.com'],
-            )
-        except Exception as error:
+            message = {
+                "content": {
+                    "subject": "Joining of collaboration tool",
+                    "html": f"<html><p>Hello,</p> <p>You have been invited by {prof.name} to use the collaboration tool, please click on the link below to authenticate your account using your NTU email. Thank you.</p><a href='http://localhost:5173/signup'>Link</a></html>"
+                },
+                "recipients": {
+                    "to": [
+                        {
+                            "address": f"{request.data['email']}",
+                        }
+                    ]
+                },
+                "senderAddress": "DoNotReply@f1307582-508c-4a39-ac6f-36a7a59039bb.azurecomm.net"
+            }
+
+            poller = email_client.begin_send(message)
+            result = poller.result()
+        except Exception as ex:
             return Response({'failure':'sending of email fail'})
         if(created):
             return Response({'success':'created and emailed'})
