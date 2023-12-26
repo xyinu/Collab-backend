@@ -33,10 +33,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = [ 'localhost', 'example.com', '127.0.0.1']
 
-# CORS_ALLOW_ALL_ORIGINS=True
-
-# CORS_ALLOW_CREDENTIALS = True
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -48,7 +44,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'quickstart',
-    'corsheaders'
+    'corsheaders',
+    'django_q'
 ]
 
 SITE_ID = 1
@@ -63,12 +60,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
-# CORS_ALLOWED_ORIGINS = [
-#     'http://localhost:8000',
-#     'http://localhost:5173',
-#     'http'
-# ]
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -92,16 +83,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'OAuth.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
+Q_CLUSTER = {
+    'name': 'DjangORM',
+    'workers': 4,
+    'timeout': 40,
+    'retry': 60,
+    'queue_limit': 50,
+    'bulk': 10,
+    'orm': 'default'
+}
 
 DATABASES = {
     "default": {

@@ -1,5 +1,4 @@
 from .serializers import UserCreateSerializer,  UserSerializer,TaskSerializer, TicketSerializer, ThreadSerializer, StudentSerializer, CourseSerializer, TicketThreadSerializer
-from django.shortcuts import render, redirect
 from .models import Student, StudentGroup, Task, Thread, Ticket, FAQ, Course, Group, User
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,6 +10,9 @@ from rest_framework.permissions import IsAuthenticated
 from dotenv import load_dotenv
 import os
 from azure.communication.email import EmailClient
+from quickstart.func import send_ticket,send_access,send_task,send_thread
+
+from django_q.models import Schedule
 
 load_dotenv()
 connection_string = os.getenv('CONNECTION_STRING')
@@ -130,26 +132,13 @@ class createAccess(APIView):
         [user,created]=User.objects.get_or_create(email=request.data['email'], user_type=request.data['access'])
         prof=request.user
         #need send email
-        try:
-            message = {
-                "content": {
-                    "subject": "Joining of collaboration tool",
-                    "html": f"<html><p>Hello,</p> <p>You have been invited by {prof.name} to use the collaboration tool, please click on the link below to authenticate your account using your NTU email. Thank you.</p><a href='http://localhost:5173/signup'>Link</a></html>"
-                },
-                "recipients": {
-                    "to": [
-                        {
-                            "address": f"{request.data['email']}",
-                        }
-                    ]
-                },
-                "senderAddress": "DoNotReply@f1307582-508c-4a39-ac6f-36a7a59039bb.azurecomm.net"
-            }
-
-            poller = email_client.begin_send(message)
-            result = poller.result()
-        except Exception as ex:
-            return Response({'failure':'sending of email fail'})
+        Schedule.objects.create(
+            func="quickstart.func.send_access",
+            kwargs={"name": f"{prof.name}","email":f"{request.data['email']}"},
+            name="send email to TA for access",
+            schedule_type=Schedule.ONCE,
+            next_run=timezone.now(),
+        )
         if(created):
             return Response({'success':'created and emailed'})
         else:
@@ -185,7 +174,7 @@ class createTask(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        tas=request.data['tas']
+        tas=request.data.getlist('tas[]')
         file=None
         if 'file' in request.FILES:
             file = request.FILES['file']
@@ -200,6 +189,17 @@ class createTask(APIView):
                                     dueDate=request.data['dueDate'],
                                     upload=file,
                                     status="ongoing"),
+            Schedule.objects.create(
+            func="quickstart.func.send_task",
+            kwargs={"title": f"{request.data['title']}",
+                    "Prof":f"{request.user.name}",
+                    "details":f"{request.data['details']}",
+                    "dueDate":f"{request.data['dueDate']}",
+                    "email":f"{User_Ta.email}"},
+            name="send email for ticket",
+            schedule_type=Schedule.ONCE,
+            next_run=timezone.now(),
+        )
         return Response({"success":"success"})
 
     def put(self, request):
@@ -280,6 +280,19 @@ class createTicket(APIView):
                                  student=student,
                                  upload=file,
                                  status=request.user.name)
+        Schedule.objects.create(
+            func="quickstart.func.send_ticket",
+            kwargs={"title": f"{request.data['title']}",
+                    "TA":f"{request.user.name}",
+                    "student":f"{student.name}",
+                    "category":f"{request.data['category']}",
+                    "severity":f"{request.data['severity']}",
+                    "details":f"{request.data['details']}",
+                    "email":f"{prof.email}"},
+            name="send email for ticket",
+            schedule_type=Schedule.ONCE,
+            next_run=timezone.now(),
+        )
         serializer = TicketSerializer(task)
         return Response(serializer.data)
 
@@ -325,6 +338,30 @@ class createThread(APIView):
                                  details=request.data['details'],
                                  Ticket=ticket,
                                  )
+        if(request.user.user_type=='TA'):
+            Schedule.objects.create(
+                func="quickstart.func.send_thread",
+                kwargs={
+                        "by":f"{request.user.name}",
+                        "ticket":f"{ticket.title}",
+                        "details":f"{request.data['details']}",
+                        "email":f"{ticket.prof.email}"},
+                name="send email for ticket",
+                schedule_type=Schedule.ONCE,
+                next_run=timezone.now(),
+            )
+        else:
+            Schedule.objects.create(
+                func="quickstart.func.send_thread",
+                kwargs={
+                        "by":f"{request.user.name}",
+                        "ticket":f"{ticket.title}",
+                        "details":f"{request.data['details']}",
+                        "email":f"{ticket.TA.email}"},
+                name="send email for ticket",
+                schedule_type=Schedule.ONCE,
+                next_run=timezone.now(),
+            )
         serializer = ThreadSerializer(thread)
         return Response(serializer.data)
 
