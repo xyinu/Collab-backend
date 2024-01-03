@@ -10,14 +10,13 @@ from rest_framework.permissions import IsAuthenticated
 from dotenv import load_dotenv
 import os
 from azure.communication.email import EmailClient
-from quickstart.func import send_ticket,send_access,send_task,send_thread
+from quickstart.func import send_ticket,send_access,send_task,send_thread,send_ticket_approve,send_approved_ticket,send_completed_task,send_rejected_ticket
 
 from django_q.models import Schedule
 
 load_dotenv()
 connection_string = os.getenv('CONNECTION_STRING')
 email_client = EmailClient.from_connection_string(connection_string)
-
 class getUser(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -196,10 +195,10 @@ class createTask(APIView):
                     "details":f"{request.data['details']}",
                     "dueDate":f"{request.data['dueDate']}",
                     "email":f"{User_Ta.email}"},
-            name="send email for ticket",
+            name="send email for task",
             schedule_type=Schedule.ONCE,
             next_run=timezone.now(),
-        )
+            )
         return Response({"success":"success"})
 
     def put(self, request):
@@ -219,32 +218,32 @@ class completeTask(APIView):
         task=Task.objects.get(id=request.data['id'])
         task.status='completed'
         task.save()
+        Schedule.objects.create(
+            func="quickstart.func.send_completed_task",
+            kwargs={"title": f"{task.title}",
+                    "Prof":f"{task.prof.name}",
+                    "details":f"{task.details}",
+                    "dueDate":f"{task.dueDate}",
+                    "email":f"{task.prof.email}",
+                    "TA":f"{request.user.name}"
+            },
+            name="send email for completed task",
+            schedule_type=Schedule.ONCE,
+            next_run=timezone.now(),
+            )
         serializer = TaskSerializer(task)
         return Response(serializer.data)
-
-class getTicket(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        ticket=Ticket.objects.all().filter(prof=request.user, status='ongoing')
-        if(ticket):
-            serializer = TicketSerializer(ticket,many=True)
-            return Response(serializer.data)
-        else:
-            ticket=Ticket.objects.all().filter(TA=request.user, status='ongoing')
-            serializer = TicketSerializer(ticket,many=True)
-            return Response(serializer.data)
     
 class getTicketWithThread (APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        ticket=Ticket.objects.all().filter(Q(prof=request.user)& ~Q(status='completed'))
+        ticket=Ticket.objects.all().filter(Q(prof=request.user)& ~Q(status='approved') & ~Q(status='rejected'))
         if(ticket):
             serializer = TicketThreadSerializer(ticket,many=True)
             return Response(serializer.data)
         else:
-            ticket=Ticket.objects.all().filter(Q(TA=request.user)& ~Q(status='completed'))
+            ticket=Ticket.objects.all().filter(Q(TA=request.user)& ~Q(status='approved')& ~Q(status='rejected'))
             serializer = TicketThreadSerializer(ticket,many=True)
             return Response(serializer.data)
 
@@ -252,12 +251,12 @@ class getCompletedTicketWithThread (APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        ticket=Ticket.objects.all().filter(prof=request.user, status='completed')
+        ticket=Ticket.objects.all().filter(Q(prof=request.user) & (Q(status='approved') | Q(status='rejected')))
         if(ticket):
             serializer = TicketThreadSerializer(ticket,many=True)
             return Response(serializer.data)
         else:
-            ticket=Ticket.objects.all().filter(TA=request.user, status='completed')
+            ticket=Ticket.objects.all().filter(Q(TA=request.user) & (Q(status='approved') | Q(status='rejected')))
             serializer = TicketThreadSerializer(ticket,many=True)
             return Response(serializer.data)
         
@@ -270,7 +269,7 @@ class createTicket(APIView):
         file=None
         if 'file' in request.FILES:
             file = request.FILES['file']
-        task=Ticket.objects.create(prof=prof, 
+        ticket=Ticket.objects.create(prof=prof, 
                                  TA=request.user, 
                                  date=timezone.now(), 
                                  title=request.data['title'], 
@@ -281,19 +280,21 @@ class createTicket(APIView):
                                  upload=file,
                                  status=request.user.name)
         Schedule.objects.create(
-            func="quickstart.func.send_ticket",
+            func="quickstart.func.send_ticket_approve",
             kwargs={"title": f"{request.data['title']}",
                     "TA":f"{request.user.name}",
                     "student":f"{student.name}",
                     "category":f"{request.data['category']}",
                     "severity":f"{request.data['severity']}",
                     "details":f"{request.data['details']}",
-                    "email":f"{prof.email}"},
-            name="send email for ticket",
+                    "email":f"{prof.email}",
+                    "id":f"{ticket.pk}"
+                    },
+            name="send email for ticket approval",
             schedule_type=Schedule.ONCE,
             next_run=timezone.now(),
         )
-        serializer = TicketSerializer(task)
+        serializer = TicketSerializer(ticket)
         return Response(serializer.data)
 
     def put(self, request):
@@ -306,16 +307,58 @@ class createTicket(APIView):
         serializer = TicketSerializer(ticket)
         return Response(serializer.data)
     
-class completeTicket(APIView):
+class approveTicket(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self,request):
         ticket=Ticket.objects.get(id=request.data['id'])
-        ticket.status='completed'
+        if(ticket.status=='approved' or ticket.status=='rejected'):
+            return Response({'response':'Ticket has already been completed, cannot run any action on ticket'})
+        ticket.status='approved'
         ticket.save()
-        serializer = TicketSerializer(ticket)
-        return Response(serializer.data)
-    
+        Schedule.objects.create(
+                func="quickstart.func.send_approved_ticket",
+                kwargs={"title": f"{ticket.title}",
+                        "TA":f"{ticket.TA.name}",
+                        "student":f"{ticket.student.name}",
+                        "category":f"{ticket.category}",
+                        "severity":f"{ticket.severity}",
+                        "details":f"{ticket.details}",
+                        "email":f"{ticket.TA.email}",
+                        "Prof":f"{request.user.name}"
+                        },
+                name="send email for approved ticket",
+                schedule_type=Schedule.ONCE,
+                next_run=timezone.now(),
+            )
+        return Response({'response':'Successfully Approve Ticket'})
+
+class rejectTicket(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self,request):
+        ticket=Ticket.objects.get(id=request.data['id'])
+        if(ticket.status=='approved' or ticket.status=='rejected'):
+            return Response({'response':'Ticket has already been completed, cannot run any action on ticket'})
+        ticket.status='rejected'
+        ticket.save()
+        Schedule.objects.create(
+            func="quickstart.func.send_rejected_ticket",
+            kwargs={"title": f"{ticket.title}",
+                    "TA":f"{ticket.TA.name}",
+                    "student":f"{ticket.student.name}",
+                    "category":f"{ticket.category}",
+                    "severity":f"{ticket.severity}",
+                    "details":f"{ticket.details}",
+                    "email":f"{ticket.TA.email}",
+                    "Prof":f"{request.user.name}"
+                    },
+            name="send email for rejected ticket",
+            schedule_type=Schedule.ONCE,
+            next_run=timezone.now(),
+        )
+        return Response({'response':'Successfully Reject Ticket'})
+
 class getThread(APIView):
     permission_classes = [IsAuthenticated]  
 
@@ -376,24 +419,26 @@ class count(APIView):
     permission_classes = [IsAuthenticated]
  
     def get(self, request):
-        ticketcompleted=Ticket.objects.all().filter(prof=request.user, status='completed')
-        if(ticketcompleted):
-            ticketcompleted=Ticket.objects.all().filter(prof=request.user, status='completed').count()
+        ticket=Ticket.objects.all().filter(prof=request.user)
+        if(ticket):
             ticketbyuser=Ticket.objects.all().filter(Q(prof=request.user) & Q(status=request.user.name)).count()
-            ticketbyother=Ticket.objects.all().filter(Q(prof=request.user) & ~Q(status=request.user.name) & ~Q(status='completed')).count()
+            ticketbyother=Ticket.objects.all().filter(Q(prof=request.user) & ~Q(status=request.user.name) & ~Q(status='approved') &  ~Q(status='rejected')).count()
+            ticketrejected=Ticket.objects.all().filter(Q(prof=request.user)  & Q(status='approved')).count()
+            ticketapproved=Ticket.objects.all().filter(Q(prof=request.user) & Q(status='rejected')).count()
             taskcompleted=Task.objects.all().filter(prof=request.user, status='completed').count()
             taskongoing=Task.objects.all().filter(Q(prof=request.user) & ~Q(status='completed')).count()  
             return Response({
-                'ticket':[ticketbyuser,ticketbyother,ticketcompleted],
+                'ticket':[ticketbyuser,ticketbyother,ticketapproved,ticketrejected],
                 'task':[taskongoing,taskcompleted]
             })      
         else:
-            ticketcompleted=Ticket.objects.all().filter(TA=request.user, status='completed').count()
             ticketbyuser=Ticket.objects.all().filter(Q(TA=request.user) & Q(status=request.user.name)).count()
-            ticketbyother=Ticket.objects.all().filter(Q(TA=request.user) & ~Q(status=request.user.name) & ~Q(status='completed')).count()
+            ticketbyother=Ticket.objects.all().filter(Q(TA=request.user) & ~Q(status=request.user.name) & ~Q(status='approved') &  ~Q(status='rejected')).count()
+            ticketrejected=Ticket.objects.all().filter(Q(TA=request.user) & Q(status='approved')).count()
+            ticketapproved=Ticket.objects.all().filter(Q(TA=request.user) & Q(status='rejected')).count()
             taskcompleted=Task.objects.all().filter(TA=request.user, status='completed').count()
             taskongoing=Task.objects.all().filter(Q(TA=request.user) & ~Q(status='completed')).count()
             return Response({
-                'ticket':[ticketbyuser,ticketbyother,ticketcompleted],
+                'ticket':[ticketbyuser,ticketbyother,ticketapproved,ticketrejected],
                 'task':[taskongoing,taskcompleted]
             })

@@ -28,12 +28,100 @@ def send_ticket(title,TA,student,category,severity,details,email):
     except Exception as ex:
         print(ex)
 
+def send_ticket_approve(title,TA,student,category,severity,details,email,id):
+    try:
+        message = {
+            "content": {
+                "subject": f"Ticket Created: {title} by {TA}",
+                "html": f"<html><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><p>You can click on approve or reject link below for action. Or you can go on the website to ask more about the ticket at <a href='http://localhost:5173/signup'>Link</a></p><div><a href='http://localhost:5173/approve?id={id}'>Approve</a> <a href='http://localhost:5173/reject?id={id}'>Reject</a></div></html>"
+            },
+            "recipients": {
+                "to": [
+                    {
+                        "address": f"{email}",
+                    }
+                ]
+            },
+            "senderAddress": "DoNotReply@f1307582-508c-4a39-ac6f-36a7a59039bb.azurecomm.net"
+        }
+
+        poller = email_client.begin_send(message)
+        result = poller.result()
+    except Exception as ex:
+        print(ex)
+
+def send_approved_ticket(title,TA,student,category,severity,details,email,Prof):
+    try:
+        message = {
+            "content": {
+                "subject": f"Ticket Approved: {title}",
+                "html": f"<html><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><p>This ticket has been approved by {Prof}</p></html>"
+            },
+            "recipients": {
+                "to": [
+                    {
+                        "address": f"{email}",
+                    }
+                ]
+            },
+            "senderAddress": "DoNotReply@f1307582-508c-4a39-ac6f-36a7a59039bb.azurecomm.net"
+        }
+
+        poller = email_client.begin_send(message)
+        result = poller.result()
+    except Exception as ex:
+        print(ex)
+
+def send_rejected_ticket(title,TA,student,category,severity,details,email,Prof):
+    try:
+        message = {
+            "content": {
+                "subject": f"Ticket Rejected: {title}",
+                "html": f"<html><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><p>This ticket has been rejected by {Prof}</p></html>"
+            },
+            "recipients": {
+                "to": [
+                    {
+                        "address": f"{email}",
+                    }
+                ]
+            },
+            "senderAddress": "DoNotReply@f1307582-508c-4a39-ac6f-36a7a59039bb.azurecomm.net"
+        }
+
+        poller = email_client.begin_send(message)
+        result = poller.result()
+    except Exception as ex:
+        print(ex)
+
 def send_task(title,Prof,details,dueDate,email):
     try:
         message = {
             "content": {
                 "subject": f"Task Created: {title} by {Prof}",
                 "html": f"<html><p>Title: {title}</p> <p>From: {Prof}</p><p>Due Date: {dueDate}</p><p>Details: {details}</p></html>"
+            },
+            "recipients": {
+                "to": [
+                    {
+                        "address": f"{email}",
+                    }
+                ]
+            },
+            "senderAddress": "DoNotReply@f1307582-508c-4a39-ac6f-36a7a59039bb.azurecomm.net"
+        }
+
+        poller = email_client.begin_send(message)
+        result = poller.result()
+    except Exception as ex:
+        print(ex)
+
+def send_completed_task(title,Prof,details,dueDate,email,TA):
+    try:
+        message = {
+            "content": {
+                "subject": f"Task Completed: {title} completed by {TA}",
+                "html": f"<html><p>Title: {title}</p> <p>From: {Prof}</p><p>Due Date: {dueDate}</p><p>Details: {details}</p> <p>Task has been completed by {TA}</html>"
             },
             "recipients": {
                 "to": [

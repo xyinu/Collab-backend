@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
+import uuid
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         """Create user by email, name, password"""
@@ -102,6 +103,10 @@ class Task(models.Model):
         return self.title
 
 class Ticket(models.Model):
+    id = models.UUIDField( 
+         primary_key = True, 
+         default = uuid.uuid4, 
+         editable = False) 
     date=models.DateTimeField()
     TA = models.ForeignKey(
         User, related_name='Ticket_TA',on_delete=models.CASCADE, blank=True, null=True
