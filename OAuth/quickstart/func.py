@@ -50,12 +50,12 @@ def send_ticket_approve(title,TA,student,category,severity,details,email,id):
     except Exception as ex:
         print(ex)
 
-def send_approved_ticket(title,TA,student,category,severity,details,email,Prof):
+def send_approved_ticket(title,TA,student,category,severity,details,email,Prof,comment):
     try:
         message = {
             "content": {
                 "subject": f"Ticket Approved: {title}",
-                "html": f"<html><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><p>This ticket has been approved by {Prof}</p></html>"
+                "html": f"<html><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><h4>Final Comment: {comment}</h4><p>This ticket has been approved by {Prof}</p></html>"
             },
             "recipients": {
                 "to": [
@@ -72,12 +72,12 @@ def send_approved_ticket(title,TA,student,category,severity,details,email,Prof):
     except Exception as ex:
         print(ex)
 
-def send_rejected_ticket(title,TA,student,category,severity,details,email,Prof):
+def send_rejected_ticket(title,TA,student,category,severity,details,email,Prof,comment):
     try:
         message = {
             "content": {
                 "subject": f"Ticket Rejected: {title}",
-                "html": f"<html><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><p>This ticket has been rejected by {Prof}</p></html>"
+                "html": f"<html><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><h4>Final Comment: {comment}</h4><p>This ticket has been rejected by {Prof}</p></html>"
             },
             "recipients": {
                 "to": [

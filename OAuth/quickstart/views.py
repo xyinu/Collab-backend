@@ -1,4 +1,4 @@
-from .serializers import UserCreateSerializer,  UserSerializer,TaskSerializer, TicketSerializer, ThreadSerializer, StudentSerializer, CourseSerializer, TicketThreadSerializer
+from .serializers import FAQSerializer,  UserSerializer,TaskSerializer, TicketSerializer, ThreadSerializer, StudentSerializer, CourseSerializer, TicketThreadSerializer
 from .models import Student, StudentGroup, Task, Thread, Ticket, FAQ, Course, Group, User
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -315,6 +315,7 @@ class approveTicket(APIView):
         if(ticket.status=='approved' or ticket.status=='rejected'):
             return Response({'response':'Ticket has already been completed, cannot run any action on ticket'})
         ticket.status='approved'
+        ticket.final_comment=request.data['comment']
         ticket.save()
         Schedule.objects.create(
                 func="quickstart.func.send_approved_ticket",
@@ -325,7 +326,8 @@ class approveTicket(APIView):
                         "severity":f"{ticket.severity}",
                         "details":f"{ticket.details}",
                         "email":f"{ticket.TA.email}",
-                        "Prof":f"{request.user.name}"
+                        "Prof":f"{request.user.name}",
+                        "comment":f"{request.data['comment']}"
                         },
                 name="send email for approved ticket",
                 schedule_type=Schedule.ONCE,
@@ -341,6 +343,7 @@ class rejectTicket(APIView):
         if(ticket.status=='approved' or ticket.status=='rejected'):
             return Response({'response':'Ticket has already been completed, cannot run any action on ticket'})
         ticket.status='rejected'
+        ticket.final_comment=request.data['comment']
         ticket.save()
         Schedule.objects.create(
             func="quickstart.func.send_rejected_ticket",
@@ -351,7 +354,8 @@ class rejectTicket(APIView):
                     "severity":f"{ticket.severity}",
                     "details":f"{ticket.details}",
                     "email":f"{ticket.TA.email}",
-                    "Prof":f"{request.user.name}"
+                    "Prof":f"{request.user.name}",
+                    "comment":f"{request.data['comment']}"
                     },
             name="send email for rejected ticket",
             schedule_type=Schedule.ONCE,
@@ -442,3 +446,26 @@ class count(APIView):
                 'ticket':[ticketbyuser,ticketbyother,ticketapproved,ticketrejected],
                 'task':[taskongoing,taskcompleted]
             })
+        
+class Faq(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        faqs=FAQ.objects.all()
+        serializer=FAQSerializer(faqs, many=True)
+        return Response(serializer.data)
+    def put(self, request):
+
+        faq=FAQ.objects.get(id=request.data['id'])
+        if(request.data.get('details')):
+            faq.details=request.data['details']
+        if(request.data.get('title')):
+            faq.title=request.data['title']
+        faq.date=timezone.now()
+        faq.save()
+        return Response({'success':'success'})
+    
+    def post(self, request):
+        faq=FAQ.objects.create(title=request.data['title'], details=request.data['details'])
+        return Response({'success':'success'})

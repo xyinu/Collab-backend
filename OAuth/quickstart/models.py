@@ -123,6 +123,7 @@ class Ticket(models.Model):
     category=models.CharField(max_length=20)
     severity=models.CharField(max_length=20)
     upload = models.FileField(blank=True, null=True)
+    final_comment = models.CharField(blank=True, null=True)
 
     def __str__(self):
         return self.title
@@ -141,6 +142,7 @@ class Thread(models.Model):
 class FAQ(models.Model):
     title=models.CharField(max_length=50)
     details=models.TextField()
+    date= models.DateField(default=timezone.now)
 
     def __str__(self):
         return self.title

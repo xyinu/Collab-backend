@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Task, Ticket, Thread, StudentGroup, Group,Student, Course
+from .models import User, Task, Ticket, Thread, StudentGroup, Group,Student, Course, FAQ
 from django.utils import timezone, dateformat
 from django.db.models import Q
 
@@ -55,7 +55,7 @@ class TicketSerializer(serializers.ModelSerializer):
     student=StudentSerializer()
     class Meta:
         model = Ticket
-        fields = ['id','date', 'TA', 'prof', 'student','title', 'details', 'category', 'severity', 'status']
+        fields = ['id','date', 'TA', 'prof', 'student','title', 'details', 'category', 'severity', 'status','final_comment']
 
 class ThreadSerializer(serializers.ModelSerializer):
     by=serializers.CharField(source='by.name')
@@ -70,9 +70,14 @@ class TicketThreadSerializer(serializers.ModelSerializer):
     thread = ThreadSerializer(source='ticket_thread',many=True)
     class Meta:
         model = Ticket
-        fields = ['id','date', 'TA', 'prof', 'student','title', 'details', 'category', 'severity', 'status','thread','upload']
+        fields = ['id','date', 'TA', 'prof', 'student','title', 'details', 'category', 'severity', 'status','thread','upload','final_comment']
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['name','email']
+
+class FAQSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FAQ
+        fields = ['id','title', 'details', 'date']

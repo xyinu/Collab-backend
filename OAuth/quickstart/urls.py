@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import getUser, getUserType,createClass, login, createAccess, createTask, createTicket, createThread, completeTask,approveTicket,rejectTicket,getTask,getClass,getThread, getTicketWithThread,getProf,getStudent,getTAs, getCompletedTask, getCompletedTicketWithThread,count
+from .views import getUser, Faq,getUserType,createClass, login, createAccess, createTask, createTicket, createThread, completeTask,approveTicket,rejectTicket,getTask,getClass,getThread, getTicketWithThread,getProf,getStudent,getTAs, getCompletedTask, getCompletedTicketWithThread,count
 
 app_name = 'quickstart'
 
@@ -24,5 +24,6 @@ urlpatterns = [
     path('prof/', getProf.as_view(), name='getProf'),
     path('student/', getStudent.as_view(), name='getStudent'),
     path('ta/', getTAs.as_view(), name='getTAs'),
-    path('count/',count.as_view(),name='count')
-]
+    path('count/',count.as_view(),name='count'),
+    path('faq/',Faq.as_view(),name='faq')
+    ]
