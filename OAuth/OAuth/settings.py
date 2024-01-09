@@ -21,6 +21,7 @@ MICROSOFT_CLIENT_ID = os.getenv('MICROSOFT_CLIENT_ID')
 POSTGRES_USER = os.getenv('POSTGRES_USER')
 POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD')
 POSTGRES_HOST = os.getenv('POSTGRES_HOST')
+POSTGRES_NAME = os.getenv('POSTGRES_NAME')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -33,9 +34,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure--vi6%i=tukxu&i=j*y)(^i7zn_-w3txy!-n$gsa*1%0--d#wb4'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = [ 'localhost', 'example.com', '127.0.0.1']
+ALLOWED_HOSTS = [ 'localhost', '127.0.0.1','test-fyp2.azurewebsites.net','0.0.0.0']
 
 # Application definition
 
@@ -66,7 +67,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
-
+CSRF_TRUSTED_ORIGINS = ['https://*.azurewebsites.net']
 ROOT_URLCONF = 'OAuth.urls'
 
 TEMPLATES = [
@@ -100,11 +101,12 @@ Q_CLUSTER = {
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": "drf",
+        "NAME": POSTGRES_NAME,
         "USER": POSTGRES_USER,
         "PASSWORD": POSTGRES_PASSWORD,
         "HOST": POSTGRES_HOST,
         "PORT": "5432",
+        "OPTIONS": {'sslmode':'require'}
     }
 }
 
@@ -154,7 +156,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = 'static'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
