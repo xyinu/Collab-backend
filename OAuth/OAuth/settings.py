@@ -90,7 +90,7 @@ WSGI_APPLICATION = 'OAuth.wsgi.application'
 
 Q_CLUSTER = {
     'name': 'DjangORM',
-    'workers': 1,
+    'workers': 8,
     'timeout': 40,
     'retry': 60,
     'queue_limit': 50,

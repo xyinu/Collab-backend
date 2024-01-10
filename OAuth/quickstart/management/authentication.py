@@ -37,14 +37,18 @@ class JWTAuthentication(authentication.BaseAuthentication):
             raise ParseError()
 
         # Get the user from the database
-        email = payload.get('preferred_username')
-
+        email = payload.get('preferred_username').lower()
         if email is None:
             raise AuthenticationFailed('User identifier not found in JWT')
 
         user = User.objects.filter(email=email).first()
         if user is None:
             raise AuthenticationFailed('User not found')
+        
+        if(not user.name):
+           name = payload.get('name').lower().replace('#','')
+           user.name=name
+           user.save()
 
         # Return the user and token payload
         return user, payload

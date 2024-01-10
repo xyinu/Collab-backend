@@ -59,9 +59,10 @@ class TicketSerializer(serializers.ModelSerializer):
 
 class ThreadSerializer(serializers.ModelSerializer):
     by=serializers.CharField(source='by.name')
+    type=serializers.CharField(source='by.user_type')
     class Meta:
         model = Thread
-        fields = ['by', 'details', 'date']
+        fields = ['by', 'type','details', 'date']
 
 class TicketThreadSerializer(serializers.ModelSerializer):
     TA = serializers.CharField(source='TA.name')
