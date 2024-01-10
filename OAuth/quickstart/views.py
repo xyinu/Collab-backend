@@ -5,18 +5,12 @@ from rest_framework.views import APIView
 from django.utils import timezone
 import pandas as pd 
 from django.db.models import Q
-from django.core.mail import send_mail
 from rest_framework.permissions import IsAuthenticated
 from dotenv import load_dotenv
-import os
-from azure.communication.email import EmailClient
 from quickstart.func import send_ticket,send_access,send_task,send_thread,send_ticket_approve,send_approved_ticket,send_completed_task,send_rejected_ticket
 
 from django_q.models import Schedule
 
-load_dotenv()
-connection_string = os.getenv('CONNECTION_STRING')
-email_client = EmailClient.from_connection_string(connection_string)
 class getUser(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -42,7 +36,7 @@ class getTAs(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        ta=User.objects.filter(user_type='TA')
+        ta=User.objects.filter(user_type='TA',name__isnull=False)
         serializer = UserSerializer(ta,many=True)
         return Response(serializer.data)
 
@@ -50,7 +44,7 @@ class getProf(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        prof=User.objects.filter(user_type='Prof')
+        prof=User.objects.filter(user_type='Prof',name__isnull=False)
         serializer = UserSerializer(prof,many=True)
         return Response(serializer.data)
 

@@ -5,6 +5,7 @@ from azure.communication.email import EmailClient
 load_dotenv()
 connection_string = os.getenv('CONNECTION_STRING')
 email_client = EmailClient.from_connection_string(connection_string)
+url = 'https://gray-desert-02bb59f00.4.azurestaticapps.net' if os.getenv('ENVIRONMENT') == 'Production' else 'http://localhost:8000'
 
 def send_ticket(title,TA,student,category,severity,details,email):
     try:
@@ -33,7 +34,7 @@ def send_ticket_approve(title,TA,student,category,severity,details,email,id):
         message = {
             "content": {
                 "subject": f"Ticket Created: {title} by {TA}",
-                "html": f"<html><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><p>You can click on approve or reject link below for action. Or you can go on the website to ask more about the ticket at <a href='http://localhost:5173/signup'>Link</a></p><div><a href='http://localhost:5173/approve?id={id}'>Approve</a> <a href='http://localhost:5173/reject?id={id}'>Reject</a></div></html>"
+                "html": f"<html><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><p>You can click on approve or reject link below for action. Or you can go on the website to ask more about the ticket at <a href='{url}'>Link</a></p><div><a href='{url}/approve?id={id}'>Approve</a> <a href='{url}/reject?id={id}'>Reject</a></div></html>"
             },
             "recipients": {
                 "to": [
@@ -165,7 +166,7 @@ def send_access(name,email):
         message = {
             "content": {
                 "subject": "Joining of collaboration tool",
-                "html": f"<html><p>Hello,</p> <p>You have been invited by {name} to use the collaboration tool, please click on the link below to authenticate your account using your NTU email. Thank you.</p><a href='http://localhost:5173/signup'>Link</a></html>"
+                "html": f"<html><p>Hello,</p> <p>You have been invited by {name} to use the collaboration tool, please click on the link below to authenticate your account using your NTU email. Thank you.</p><a href='{url}/signup'>Link</a></html>"
             },
             "recipients": {
                 "to": [

@@ -34,7 +34,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure--vi6%i=tukxu&i=j*y)(^i7zn_-w3txy!-n$gsa*1%0--d#wb4'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [ 'localhost', '127.0.0.1','test-fyp2.azurewebsites.net','0.0.0.0']
 
@@ -90,7 +90,7 @@ WSGI_APPLICATION = 'OAuth.wsgi.application'
 
 Q_CLUSTER = {
     'name': 'DjangORM',
-    'workers': 4,
+    'workers': 1,
     'timeout': 40,
     'retry': 60,
     'queue_limit': 50,
@@ -106,7 +106,6 @@ DATABASES = {
         "PASSWORD": POSTGRES_PASSWORD,
         "HOST": POSTGRES_HOST,
         "PORT": "5432",
-        "OPTIONS": {'sslmode':'require'}
     }
 }
 
