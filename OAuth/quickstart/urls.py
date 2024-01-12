@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import getUser, Faq,getUserType,createClass, login, createAccess, createTask, createTicket, createThread, completeTask,approveTicket,rejectTicket,getTask,getClass,getThread, getTicketWithThread,getProf,getStudent,getTAs, getCompletedTask, getCompletedTicketWithThread,count
+from .views import getUser, reopenTicket,Faq,getUserType,createClass, createTaskThread,login, createAccess, createTask, createTicket, createThread, completeTask,completeTicket,getTask,getClass,getThread, getTicketWithThread,getProf,getStudent,getTAs, getCompletedTask, getCompletedTicketWithThread,count
 
 app_name = 'quickstart'
 
@@ -17,10 +17,11 @@ urlpatterns = [
     path('completedticket/', getCompletedTicketWithThread.as_view(), name='getCompletedTicketWithThread'),
     path('ticketthread/', getTicketWithThread.as_view(), name='getTicketThread'),
     path('createticket/', createTicket.as_view(), name='createTicket'),
-    path('approveticket/', approveTicket.as_view(), name='approveTicket'),
-    path('rejectticket/', rejectTicket.as_view(), name='rejectTicket'),
+    path('completeticket/', completeTicket.as_view(), name='completeTicket'),
+    path('reopenticket/', reopenTicket.as_view(), name='reopenTicket'),
     path('thread/<id>', getThread.as_view(), name='getThread'),
     path('createthread/', createThread.as_view(), name='createThead'),
+    path('createtaskthread/', createTaskThread.as_view(), name='createTaskThead'),
     path('prof/', getProf.as_view(), name='getProf'),
     path('student/', getStudent.as_view(), name='getStudent'),
     path('ta/', getTAs.as_view(), name='getTAs'),

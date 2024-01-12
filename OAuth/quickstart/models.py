@@ -81,8 +81,8 @@ class Group(models.Model):
         return self.code
 
 class StudentGroup(models.Model):
-    group=models.ForeignKey(Group,related_name='group', on_delete=models.CASCADE)
-    student=models.ForeignKey(Student, related_name='student',on_delete=models.CASCADE)
+    group=models.ForeignKey(Group,related_name='group_student', on_delete=models.CASCADE)
+    student=models.ForeignKey(Student, related_name='student_group',on_delete=models.CASCADE)
     
 
 class Task(models.Model):
@@ -102,6 +102,16 @@ class Task(models.Model):
     def __str__(self):
         return self.title
 
+class TaskThread(models.Model):
+    date= models.DateTimeField()
+    Task= models.ForeignKey(
+        Task, related_name='task_thread',on_delete=models.CASCADE
+    )
+    details=models.TextField()
+    by= models.ForeignKey(
+        User,on_delete=models.CASCADE, blank=True, null=True
+    )
+
 class Ticket(models.Model):
     id = models.UUIDField( 
          primary_key = True, 
@@ -119,7 +129,7 @@ class Ticket(models.Model):
     )
     details=models.TextField()
     title=models.CharField(max_length=50)
-    status=models.CharField(max_length=20)
+    status=models.CharField(max_length=80)
     category=models.CharField(max_length=20)
     severity=models.CharField(max_length=20)
     upload = models.FileField(blank=True, null=True)
