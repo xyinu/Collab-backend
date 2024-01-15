@@ -130,7 +130,7 @@ class Ticket(models.Model):
     details=models.TextField()
     title=models.CharField(max_length=50)
     status=models.CharField(max_length=80)
-    category=models.CharField(max_length=20)
+    category=models.CharField(max_length=50)
     severity=models.CharField(max_length=20)
     upload = models.FileField(blank=True, null=True)
     final_comment = models.CharField(blank=True, null=True)
@@ -153,7 +153,13 @@ class FAQ(models.Model):
     title=models.CharField(max_length=50)
     details=models.TextField()
     date= models.DateField(default=timezone.now)
+    category=models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         return self.title
     
+class TicketCategory(models.Model):
+    category=models.CharField(max_length=50)
+
+class FAQCategory(models.Model):
+    category=models.CharField(max_length=50)

@@ -38,6 +38,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
 
         # Get the user from the database
         email = payload.get('preferred_username').lower()
+        print(payload)#test for prof email
         if email is None:
             raise AuthenticationFailed('User identifier not found in JWT')
 

@@ -5,7 +5,7 @@ from azure.communication.email import EmailClient
 load_dotenv()
 connection_string = os.getenv('CONNECTION_STRING')
 email_client = EmailClient.from_connection_string(connection_string)
-url = 'https://gray-desert-02bb59f00.4.azurestaticapps.net' if os.getenv('ENVIRONMENT') == 'Production' else 'http://localhost:8000'
+url = 'https://gray-desert-02bb59f00.4.azurestaticapps.net' if os.getenv('ENVIRONMENT') == 'Production' else 'http://localhost:8080'
 
 def send_ticket(title,TA,student,category,severity,details,email):
     try:
@@ -34,7 +34,7 @@ def send_ticket_approve(title,TA,student,category,severity,details,email):
         message = {
             "content": {
                 "subject": f"Ticket Created: {title} by {TA}",
-                "html": f"<html><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><p>You can click on approve or reject link below for action. Or you can go on the website to ask more about the ticket at <a href='{url}'>Link</a></p></html>"
+                "html": f"<html><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><p>You can click on <a href='{url}'>Link</a> to go to website.</p></html>"
             },
             "recipients": {
                 "to": [
@@ -143,7 +143,7 @@ def send_thread(by,ticket,details,email):
     try:
         message = {
             "content": {
-                "subject": f"Comment Created by {by} for {ticket}",
+                "subject": f"Comment created by {by} for ticket: {ticket}",
                 "html": f"<html><p>Ticket Title:{ticket}</p> <p>From: {by}</p><p>Comment: {details}</p></html>"
             },
             "recipients": {
@@ -165,7 +165,7 @@ def send_task_thread(by,ticket,details,email):
     try:
         message = {
             "content": {
-                "subject": f"Comment Created by {by} for {ticket}",
+                "subject": f"Comment created by {by} for task: {ticket}",
                 "html": f"<html><p>Task Title:{ticket}</p> <p>From: {by}</p><p>Comment: {details}</p></html>"
             },
             "recipients": {

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Task, Ticket, Thread, StudentGroup, Group,Student, Course, FAQ, TaskThread
+from .models import User, Task, Ticket, Thread, StudentGroup, Group,Student, Course, FAQ, TaskThread, TicketCategory, FAQCategory
 from django.utils import timezone, dateformat
 from django.db.models import Q
 
@@ -83,7 +83,7 @@ class UserSerializer(serializers.ModelSerializer):
 class FAQSerializer(serializers.ModelSerializer):
     class Meta:
         model = FAQ
-        fields = ['id','title', 'details', 'date']
+        fields = ['id','title', 'details', 'date','category']
 
 class GroupDetailSerializer(serializers.ModelSerializer):
     course_code=serializers.CharField(source='course_code.code')
@@ -96,9 +96,24 @@ class StudentGroupSerializer(serializers.ModelSerializer):
         model=StudentGroup
         fields = ['group']
 
+class TicketDetailSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model=Ticket
+        fields = ['title','status','category']
 class StudentDetailsSerializer(serializers.ModelSerializer):
     group_course=StudentGroupSerializer(source='student_group',many=True)
-
+    tickets=TicketDetailSerializer(source='Ticket_student',many=True)
     class Meta:
         model=Student
-        fields = ['name','VMS','program_year','student_type','course_type','nationality','group_course']
+        fields = ['name','VMS','program_year','student_type','course_type','nationality','group_course','tickets']
+
+class TicketCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model=TicketCategory
+        fields = ['category']
+
+class FAQCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model=FAQCategory
+        fields = ['category']

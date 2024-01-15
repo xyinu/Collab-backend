@@ -1,5 +1,5 @@
-from .serializers import FAQSerializer,StudentDetailsSerializer,UserSerializer,TaskSerializer, TicketSerializer, ThreadSerializer, TaskThreadSerializer,StudentSerializer, CourseSerializer, TicketThreadSerializer
-from .models import Student, StudentGroup, Task, Thread, Ticket, FAQ, Course, Group, User, TaskThread
+from .serializers import FAQSerializer,TicketCategorySerializer,FAQCategorySerializer,StudentDetailsSerializer,UserSerializer,TaskSerializer, TicketSerializer, ThreadSerializer, TaskThreadSerializer,StudentSerializer, CourseSerializer, TicketThreadSerializer
+from .models import Student, StudentGroup, FAQCategory,TicketCategory,Task, Thread, Ticket, FAQ, Course, Group, User, TaskThread
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.utils import timezone
@@ -54,6 +54,14 @@ class getStudent(APIView):
         student=Student.objects.all()
         serializer = StudentDetailsSerializer(student,many=True)
         return Response(serializer.data)
+    
+class getStudentTrunc(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        student=Student.objects.all()
+        serializer = StudentSerializer(student,many=True)
+        return Response(serializer.data)
         
 class login(APIView):
     permission_classes = [IsAuthenticated]
@@ -75,7 +83,34 @@ class getClass(APIView):
         course=Course.objects.all()
         serializer=CourseSerializer(course,many=True)
         return Response(serializer.data)
+    
+class editClass(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def post(self,request):
+        students=request.data['students']
+        course=Course.objects.filter(code=request.data['course_code']).first()
+        group=Group.objects.filter(code=request.data['group_code'],course_code=course).first()
+        for i in students:
+            print(i)
+            student=Student.objects.filter(VMS=i).first()
+            StudentGroup.objects.create(student=student,group=group)
+
+        return Response({'success':'success'})
+
+class deleteClass(APIView):
+
+    def post(self, request):
+        students=request.data['students']
+        course=Course.objects.filter(code=request.data['course_code']).first()
+        group=Group.objects.filter(code=request.data['group_code'],course_code=course).first()
+        for i in students:
+            student=Student.objects.filter(VMS=i).first()
+            stugroup=StudentGroup.objects.filter(student=student,group=group).first()
+            stugroup.delete()
+
+        return Response({'success':'success'})
+    
 class createClass(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -245,7 +280,7 @@ class reopenTicket(APIView):
                             Ticket=ticket,
                             )
         Schedule.objects.create(
-                func="quickstart.func.send_completed_ticket",
+                func="quickstart.func.send_reopen_ticket",
                 kwargs={"title": f"{ticket.title}",
                         "TA":f"{ticket.TA.name}",
                         "student":f"{ticket.student.name}",
@@ -316,7 +351,6 @@ class createTicket(APIView):
                     "severity":f"{request.data['severity']}",
                     "details":f"{request.data['details']}",
                     "email":f"{prof.email}",
-                    "id":f"{ticket.pk}"
                     },
             name="send email for ticket approval",
             schedule_type=Schedule.ONCE,
@@ -493,7 +527,7 @@ class Faq(APIView):
 
     def get(self, request):
 
-        faqs=FAQ.objects.all()
+        faqs=FAQ.objects.all().order_by('-date')
         serializer=FAQSerializer(faqs, many=True)
         return Response(serializer.data)
     def put(self, request):
@@ -503,10 +537,64 @@ class Faq(APIView):
             faq.details=request.data['details']
         if(request.data.get('title')):
             faq.title=request.data['title']
+        if(request.data.get('category')):
+            faq.category=request.data['category']
         faq.date=timezone.now()
         faq.save()
         return Response({'success':'success'})
     
     def post(self, request):
-        faq=FAQ.objects.create(title=request.data['title'], details=request.data['details'])
+        faq=FAQ.objects.create(title=request.data['title'], details=request.data['details'], category=request.data['category'])
         return Response({'success':'success'})
+
+class DeleteFaq(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+
+        faq=FAQ.objects.get(id=request.data['id'])
+        faq.delete()
+        return Response({"success":"success"})
+
+class TicketCategoryView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        category=TicketCategory.objects.all()
+        serializer=TicketCategorySerializer(category,many=True)
+        return Response(serializer.data)
+        
+
+    def post(self, request):
+        category=category=TicketCategory.objects.filter(
+            category=request.data['category']
+        ).first()
+        if(request.data['category']=='' or category):
+            return Response({'error':'already created'})
+        
+        category=TicketCategory.objects.create(
+            category=request.data['category']
+        )
+        serializer=TicketCategorySerializer(category)
+        return Response(serializer.data)
+
+class FAQCategoryView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        category=FAQCategory.objects.all()
+        serializer=FAQCategorySerializer(category,many=True)
+        return Response(serializer.data)
+        
+
+    def post(self, request):
+        category=category=FAQCategory.objects.filter(
+            category=request.data['category']
+        ).first()
+        if(request.data['category']=='' or category):
+            return Response({'error':'already created'})
+        category=FAQCategory.objects.create(
+            category=request.data['category']
+        )
+        serializer=FAQCategorySerializer(category)
+        return Response(serializer.data)

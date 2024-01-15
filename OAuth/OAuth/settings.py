@@ -25,7 +25,8 @@ POSTGRES_NAME = os.getenv('POSTGRES_NAME')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+MEDIA_ROOT = os.path.join(BASE_DIR,'media')
+MEDIA_URL = "/media/"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -90,9 +91,9 @@ WSGI_APPLICATION = 'OAuth.wsgi.application'
 
 Q_CLUSTER = {
     'name': 'DjangORM',
-    'workers': 8,
+    'workers': 4,
     'timeout': 40,
-    'retry': 60,
+    'retry': 600,
     'queue_limit': 50,
     'bulk': 10,
     'orm': 'default'
