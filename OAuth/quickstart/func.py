@@ -12,7 +12,7 @@ def send_ticket(title,TA,student,category,severity,details,email):
         message = {
             "content": {
                 "subject": f"Ticket Created: {title} by {TA}",
-                "html": f"<html><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p></html>"
+                "html": f"<html><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><p>You can click on <a href='{url}'>Link</a> to go to website.</p></html>"
             },
             "recipients": {
                 "to": [
@@ -56,7 +56,7 @@ def send_completed_ticket(title,TA,student,category,severity,details,email,Prof,
         message = {
             "content": {
                 "subject": f"Ticket Closed: {title}",
-                "html": f"<html><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><h4>Final Comment: {comment}</h4><p>This ticket has been closed by {Prof}</p></html>"
+                "html": f"<html><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><h4>Final Comment: {comment}</h4><p>This ticket has been closed by {Prof}</p><p>You can click on <a href='{url}'>Link</a> to go to website.</p></html>"
             },
             "recipients": {
                 "to": [
@@ -78,7 +78,7 @@ def send_reopen_ticket(title,TA,student,category,severity,details,email,Prof,com
         message = {
             "content": {
                 "subject": f"Ticket Reopned: {title}",
-                "html": f"<html><h4>Reopen Comment: {comment}</h4><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><p>This ticket has been reopened by {Prof}</p></html>"
+                "html": f"<html><h4>Reopen Comment: {comment}</h4><p>Title: {title}</p> <p>From: {TA}</p> <p>Student: {student}</p><p>Category: {category}</p><p>Severity: {severity}</p> <p>Details: {details}</p><p>This ticket has been reopened by {Prof}</p><p>You can click on <a href='{url}'>Link</a> to go to website.</p></html>"
             },
             "recipients": {
                 "to": [
@@ -100,7 +100,7 @@ def send_task(title,Prof,details,dueDate,email):
         message = {
             "content": {
                 "subject": f"Task Created: {title} by {Prof}",
-                "html": f"<html><p>Title: {title}</p> <p>From: {Prof}</p><p>Due Date: {dueDate}</p><p>Details: {details}</p></html>"
+                "html": f"<html><p>Title: {title}</p> <p>From: {Prof}</p><p>Due Date: {dueDate}</p><p>Details: {details}</p><p>You can click on <a href='{url}'>Link</a> to go to website.</p></html>"
             },
             "recipients": {
                 "to": [
@@ -122,7 +122,7 @@ def send_completed_task(title,Prof,details,dueDate,email,TA):
         message = {
             "content": {
                 "subject": f"Task Completed: {title} completed by {TA}",
-                "html": f"<html><p>Title: {title}</p> <p>From: {Prof}</p><p>Due Date: {dueDate}</p><p>Details: {details}</p> <p>Task has been completed by {TA}</html>"
+                "html": f"<html><p>Title: {title}</p> <p>From: {Prof}</p><p>Due Date: {dueDate}</p><p>Details: {details}</p> <p>Task has been completed by {TA}</p><p>You can click on <a href='{url}'>Link</a> to go to website.</p></html>"
             },
             "recipients": {
                 "to": [
@@ -144,7 +144,7 @@ def send_thread(by,ticket,details,email):
         message = {
             "content": {
                 "subject": f"Comment created by {by} for ticket: {ticket}",
-                "html": f"<html><p>Ticket Title:{ticket}</p> <p>From: {by}</p><p>Comment: {details}</p></html>"
+                "html": f"<html><p>Ticket Title:{ticket}</p> <p>From: {by}</p><p>Comment: {details}</p><p>You can click on <a href='{url}'>Link</a> to go to website.</p></html>"
             },
             "recipients": {
                 "to": [
@@ -166,7 +166,7 @@ def send_task_thread(by,ticket,details,email):
         message = {
             "content": {
                 "subject": f"Comment created by {by} for task: {ticket}",
-                "html": f"<html><p>Task Title:{ticket}</p> <p>From: {by}</p><p>Comment: {details}</p></html>"
+                "html": f"<html><p>Task Title:{ticket}</p> <p>From: {by}</p><p>Comment: {details}</p><p>You can click on <a href='{url}'>Link</a> to go to website.</p></html>"
             },
             "recipients": {
                 "to": [
@@ -188,7 +188,7 @@ def send_access(name,email):
         message = {
             "content": {
                 "subject": "Joining of collaboration tool",
-                "html": f"<html><p>Hello,</p> <p>You have been invited by {name} to use the collaboration tool, please click on the link below to authenticate your account using your NTU email. Thank you.</p><a href='{url}'>Link</a></html>"
+                "html": f"<html><p>Hello,</p> <p>You have been invited by {name} to use the collaboration tool, please click on the link below to login to your account using your NTU email. Thank you.</p><a href='{url}'>Link</a></html>"
             },
             "recipients": {
                 "to": [

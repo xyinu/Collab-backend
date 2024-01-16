@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import getUser, DeleteFaq,getStudentTrunc,deleteClass,editClass,TicketCategoryView,FAQCategoryView,reopenTicket,Faq,getUserType,createClass, createTaskThread,login, createAccess, createTask, createTicket, createThread, completeTask,completeTicket,getTask,getClass,getThread, getTicketWithThread,getProf,getStudent,getTAs, getCompletedTask, getCompletedTicketWithThread,count
+from .views import getUser, downloadFile,downloadTaskFile,DeleteFaq,getStudentTrunc,deleteClass,editClass,TicketCategoryView,FAQCategoryView,reopenTicket,Faq,getUserType,createClass, createTaskThread,login, createAccess, createTask, createTicket, createThread, completeTask,completeTicket,getTask,getClass,getThread, getTicketWithThread,getProf,getStudent,getTAs, getCompletedTask, getCompletedTicketWithThread,count
 
 app_name = 'quickstart'
 
@@ -33,4 +33,6 @@ urlpatterns = [
     path('deletefaq/',DeleteFaq.as_view(),name='deletefaq'),
     path('ticketcategory/',TicketCategoryView.as_view(),name='ticketcategory'),
     path('faqcategory/',FAQCategoryView.as_view(),name='faqcategory'),
+    path('downloadfile/',downloadFile.as_view(),name='downloadfile'),
+    path('downloadtaskfile/',downloadTaskFile.as_view(),name='downloadtaskfile'),
     ]

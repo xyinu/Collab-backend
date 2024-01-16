@@ -97,7 +97,8 @@ class Task(models.Model):
     details=models.TextField()
     dueDate=models.DateTimeField()
     status=models.CharField(max_length=20)
-    upload = models.FileField(blank=True, null=True)
+    url = models.URLField(null=True)
+    file_name=models.CharField(max_length=200, blank=True,null=True)
 
     def __str__(self):
         return self.title
@@ -132,7 +133,8 @@ class Ticket(models.Model):
     status=models.CharField(max_length=80)
     category=models.CharField(max_length=50)
     severity=models.CharField(max_length=20)
-    upload = models.FileField(blank=True, null=True)
+    url = models.URLField(null=True)
+    file_name=models.CharField(max_length=200, blank=True,null=True)
     final_comment = models.CharField(blank=True, null=True)
 
     def __str__(self):

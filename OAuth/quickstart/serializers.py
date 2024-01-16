@@ -65,7 +65,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
-        fields = ['id','date', 'TA', 'prof', 'title', 'details', 'dueDate', 'status','thread']
+        fields = ['id','date', 'TA', 'prof', 'title', 'details', 'dueDate', 'status','thread','file_name']
 class TicketThreadSerializer(serializers.ModelSerializer):
     TA = serializers.CharField(source='TA.name')
     prof= serializers.CharField(source='prof.name')
@@ -73,7 +73,7 @@ class TicketThreadSerializer(serializers.ModelSerializer):
     thread = ThreadSerializer(source='ticket_thread',many=True)
     class Meta:
         model = Ticket
-        fields = ['id','date', 'TA', 'prof', 'student','title', 'details', 'category', 'severity', 'status','thread','upload','final_comment']
+        fields = ['id','date', 'TA', 'prof', 'student','title', 'details', 'category', 'severity', 'status','thread','final_comment','file_name']
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

@@ -7,9 +7,12 @@ import pandas as pd
 from django.db.models import Q
 from rest_framework.permissions import IsAuthenticated
 from quickstart.func import send_ticket,send_access,send_task,send_thread,send_ticket_approve,send_completed_ticket,send_completed_task
-
+from quickstart.management.azure_file_controller import download_blob, upload_file_to_blob
 from django_q.models import Schedule
-
+from pathlib import Path
+import mimetypes
+from django.http import Http404, HttpResponse
+   
 class getUser(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -92,7 +95,6 @@ class editClass(APIView):
         course=Course.objects.filter(code=request.data['course_code']).first()
         group=Group.objects.filter(code=request.data['group_code'],course_code=course).first()
         for i in students:
-            print(i)
             student=Student.objects.filter(VMS=i).first()
             StudentGroup.objects.create(student=student,group=group)
 
@@ -201,6 +203,22 @@ class getCompletedTask(APIView):
             serializer = TaskSerializer(task,many=True)
             return Response(serializer.data)
     
+class downloadTaskFile(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request): 
+        task = Task.objects.filter(pk=request.data['id']).first()
+        file_name = task.file_name
+        file_type, _ = mimetypes.guess_type(file_name)
+        url = task.url
+        blob_name = url.split("/")[-1]
+        blob_content = download_blob(blob_name)
+        if blob_content:
+            response = HttpResponse(blob_content.readall(), content_type=file_type)
+            response['Content-Disposition'] = f'attachment; filename={file_name}'
+            return response
+        return Response({"fail","fail"})
+
 class createTask(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -209,17 +227,20 @@ class createTask(APIView):
         file=None
         if 'file' in request.FILES:
             file = request.FILES['file']
-
+            url = upload_file_to_blob(file)
         for ta in tas:
             User_Ta=User.objects.get(email=ta)
-            Task.objects.create(prof=request.user, 
+            task=Task.objects.create(prof=request.user, 
                                     TA=User_Ta, 
                                     date=timezone.now(), 
                                     title=request.data['title'], 
                                     details=request.data['details'],
                                     dueDate=request.data['dueDate'],
-                                    upload=file,
-                                    status="ongoing"),
+                                    status="ongoing")
+            if 'file' in request.FILES:
+                task.url=url
+                task.file_name = file.name
+                task.save()
             Schedule.objects.create(
             func="quickstart.func.send_task",
             kwargs={"title": f"{request.data['title']}",
@@ -322,16 +343,29 @@ class getCompletedTicketWithThread (APIView):
             ticket=Ticket.objects.all().filter(Q(TA=request.user) & Q(status='completed')).order_by('date')
             serializer = TicketThreadSerializer(ticket,many=True)
             return Response(serializer.data)
-        
+
+class downloadFile(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request): 
+        ticket = Ticket.objects.filter(pk=request.data['id']).first()
+        file_name = ticket.file_name
+        file_type, _ = mimetypes.guess_type(file_name)
+        url = ticket.url
+        blob_name = url.split("/")[-1]
+        blob_content = download_blob(blob_name)
+        if blob_content:
+            response = HttpResponse(blob_content.readall(), content_type=file_type)
+            response['Content-Disposition'] = f'attachment; filename={file_name}'
+            return response
+        return Response({"fail","fail"})
+
 class createTicket(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         prof=User.objects.get(email=request.data['prof'])
         student=Student.objects.get(VMS=request.data['student'])
-        file=None
-        if 'file' in request.FILES:
-            file = request.FILES['file']
         ticket=Ticket.objects.create(prof=prof, 
                                  TA=request.user, 
                                  date=timezone.now(), 
@@ -340,8 +374,16 @@ class createTicket(APIView):
                                  category=request.data['category'],
                                  severity=request.data['severity'],
                                  student=student,
-                                 upload=file,
                                  status=request.user.name)
+        file=None
+        if 'file' in request.FILES:
+            file = request.FILES['file']
+            url = upload_file_to_blob(file)
+            if not url:
+                return Response({'fail':'fail'})
+            ticket.url=url
+            ticket.file_name = file.name
+            ticket.save()
         Schedule.objects.create(
             func="quickstart.func.send_ticket_approve",
             kwargs={"title": f"{request.data['title']}",
