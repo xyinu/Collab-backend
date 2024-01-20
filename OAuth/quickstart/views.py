@@ -300,7 +300,8 @@ class reopenTicket(APIView):
                             details=request.data['comment'],
                             Ticket=ticket,
                             )
-        Schedule.objects.create(
+        if(request.user.user_type=='TA'):
+            Schedule.objects.create(
                 func="quickstart.func.send_reopen_ticket",
                 kwargs={"title": f"{ticket.title}",
                         "TA":f"{ticket.TA.name}",
@@ -308,7 +309,7 @@ class reopenTicket(APIView):
                         "category":f"{ticket.category}",
                         "severity":f"{ticket.severity}",
                         "details":f"{ticket.details}",
-                        "email":f"{ticket.TA.email}",
+                        "email":f"{ticket.prof.email}",
                         "Prof":f"{request.user.name}",
                         "comment":f"{request.data['comment']}"
                         },
@@ -316,6 +317,23 @@ class reopenTicket(APIView):
                 schedule_type=Schedule.ONCE,
                 next_run=timezone.now(),
             )
+        else:
+            Schedule.objects.create(
+                    func="quickstart.func.send_reopen_ticket",
+                    kwargs={"title": f"{ticket.title}",
+                            "TA":f"{ticket.TA.name}",
+                            "student":f"{ticket.student.name}",
+                            "category":f"{ticket.category}",
+                            "severity":f"{ticket.severity}",
+                            "details":f"{ticket.details}",
+                            "email":f"{ticket.TA.email}",
+                            "Prof":f"{request.user.name}",
+                            "comment":f"{request.data['comment']}"
+                            },
+                    name="send email for approved ticket",
+                    schedule_type=Schedule.ONCE,
+                    next_run=timezone.now(),
+                )
         return Response({"success":"success"})
     
 class getTicketWithThread (APIView):

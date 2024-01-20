@@ -1,12 +1,11 @@
 from io import BytesIO
 import uuid
 from pathlib import Path
-
-from azure.storage.blob import BlobClient
-from django.conf import settings
+from dotenv import load_dotenv
+import os
 from azure.storage.blob import BlobServiceClient
-service = BlobServiceClient(account_url="https://testfyp.blob.core.windows.net/test", credential="M/7QSQ3Y2bYem5E+BvzQoAymK42l4VMiOa0ZkJh7l+b65I9wZrMb7tocD1ty+aHhsF3WNXBRRh8Q+ASt8WldBQ==")
-
+service = BlobServiceClient(account_url=os.getenv('BLOB_ACC'), credential=os.getenv('BLOB_CREDENTIAL'))
+load_dotenv()
 
 def download_blob(file):
     blob_client = service.get_blob_client(container="test",blob=file)
