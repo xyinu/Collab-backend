@@ -15,48 +15,27 @@ class StudentSerializer(serializers.ModelSerializer):
         model = Student
         fields = ['name','VMS']
 
-class ClassSerializer(serializers.ModelSerializer):
-    student=StudentSerializer()
-
-    class Meta:
-        model = StudentGroup
-        fields = ['student']
-
-class GroupSerializer(serializers.ModelSerializer):
-    group_code=serializers.CharField(source='code')
-    students=ClassSerializer(source='group_student',many=True)
-    class Meta:
-        model = Group
-        fields = ['type','group_code','students']
-
-class CourseSerializer(serializers.ModelSerializer):
-    group = GroupSerializer(source='course_group',many=True)
-
-    class Meta:
-        model = Course
-        fields = ['code', 'name','group']
-
 class TicketSerializer(serializers.ModelSerializer):
     TA = serializers.CharField(source='TA.name')
     prof= serializers.CharField(source='prof.name')
     student=StudentSerializer()
     class Meta:
         model = Ticket
-        fields = ['id','date', 'TA', 'prof', 'student','title', 'details', 'category', 'severity', 'status','final_comment']
+        fields = ['id','date', 'TA', 'prof', 'student','title', 'details', 'category', 'severity', 'status']
 
 class ThreadSerializer(serializers.ModelSerializer):
     by=serializers.CharField(source='by.name')
     type=serializers.CharField(source='by.user_type')
     class Meta:
         model = Thread
-        fields = ['by', 'type','details', 'date']
+        fields = ['by', 'type','details', 'date','file_name','id']
 
 class TaskThreadSerializer(serializers.ModelSerializer):
     by=serializers.CharField(source='by.name')
     type=serializers.CharField(source='by.user_type')
     class Meta:
         model = TaskThread
-        fields = ['by', 'type','details', 'date']
+        fields = ['by', 'type','details', 'date','file_name','id']
 
 class TaskSerializer(serializers.ModelSerializer):
     TA = serializers.CharField(source='TA.name')
@@ -73,7 +52,7 @@ class TicketThreadSerializer(serializers.ModelSerializer):
     thread = ThreadSerializer(source='ticket_thread',many=True)
     class Meta:
         model = Ticket
-        fields = ['id','date', 'TA', 'prof', 'student','title', 'details', 'category', 'severity', 'status','thread','final_comment','file_name']
+        fields = ['id','date', 'TA', 'prof', 'student','title', 'details', 'category', 'severity', 'status','thread','file_name']
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -106,7 +85,7 @@ class StudentDetailsSerializer(serializers.ModelSerializer):
     tickets=TicketDetailSerializer(source='Ticket_student',many=True)
     class Meta:
         model=Student
-        fields = ['name','VMS','program_year','student_type','course_type','nationality','group_course','tickets']
+        fields = ['id','name','VMS','program_year','student_type','course_type','nationality','group_course','tickets']
 
 class TicketCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -117,3 +96,31 @@ class FAQCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model=FAQCategory
         fields = ['category']
+
+class ClassSerializer(serializers.ModelSerializer):
+    student=StudentDetailsSerializer()
+
+    class Meta:
+        model = StudentGroup
+        fields = ['student']
+
+class GroupSerializer(serializers.ModelSerializer):
+    group_code=serializers.CharField(source='code')
+    students=ClassSerializer(source='group_student',many=True)
+    class Meta:
+        model = Group
+        fields = ['type','group_code','students']
+
+class CourseSerializer(serializers.ModelSerializer):
+    group = GroupSerializer(source='course_group',many=True)
+
+    class Meta:
+        model = Course
+        fields = ['code', 'name','group']
+
+class GetGroupSerializer(serializers.ModelSerializer):
+    group_code=serializers.CharField(source='code')
+    cour_code=serializers.CharField(source='course_code.code')
+    class Meta:
+        model = Group
+        fields = ['type','group_code','cour_code']

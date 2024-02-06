@@ -29,6 +29,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
 
     email = models.EmailField(unique=True)
+    send = models.EmailField(null=True)
     name = models.CharField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -112,6 +113,8 @@ class TaskThread(models.Model):
     by= models.ForeignKey(
         User,on_delete=models.CASCADE, blank=True, null=True
     )
+    url = models.URLField(null=True,blank=True)
+    file_name=models.CharField(max_length=200, blank=True,null=True)
 
 class Ticket(models.Model):
     id = models.UUIDField( 
@@ -135,7 +138,6 @@ class Ticket(models.Model):
     severity=models.CharField(max_length=20)
     url = models.URLField(null=True)
     file_name=models.CharField(max_length=200, blank=True,null=True)
-    final_comment = models.CharField(blank=True, null=True)
 
     def __str__(self):
         return self.title
@@ -149,6 +151,8 @@ class Thread(models.Model):
     by= models.ForeignKey(
         User,on_delete=models.CASCADE, blank=True, null=True
     )
+    url = models.URLField(null=True,blank=True)
+    file_name=models.CharField(max_length=200, blank=True,null=True)
 
 
 class FAQ(models.Model):

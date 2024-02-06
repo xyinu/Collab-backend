@@ -48,6 +48,7 @@ def send_ticket_approve(title,TA,student,category,severity,details,email):
             "senderAddress": f"{sender_email}"
         }
         poller = email_client.begin_send(message)
+        print(email)
         result = poller.result()
     except Exception as ex:
         print(ex)
@@ -121,13 +122,36 @@ def send_task(title,Prof,details,dueDate,email):
     except Exception as ex:
         print(ex)
 
-def send_completed_task(title,Prof,details,dueDate,email,TA):
+def send_completed_task(title,Prof,details,dueDate,email,TA,comment):
     try:
         message = {
             "content": {
                 "subject": f"Task Completed: {title} completed by {TA}",
-                "html": f"<html><p>Title: {title}</p> <p>From: {Prof}</p><p>Due Date: {dueDate}</p><p>Details: {details}</p> <p>Task has been completed by {TA}</p><p>You can click on <a href='{url}'>Link</a> to go to website.</p></html>",
+                "html": f"<html><p>Title: {title}</p> <p>From: {Prof}</p><p>Due Date: {dueDate}</p><p>Details: {details}</p><p>Final Comment: {comment}</p> <p>Task has been completed by {TA}</p><p>You can click on <a href='{url}'>Link</a> to go to website.</p></html>",
                 "plainText": f"Title: {title}</p> <p>From: {Prof}\nDue Date: {dueDate}\nDetails: {details}\nTask has been completed by {TA}",
+            },
+            "recipients": {
+                "to": [
+                    {
+                        "address": f"{email}",
+                    }
+                ]
+            },
+            "senderAddress": f"{sender_email}"
+        }
+
+        poller = email_client.begin_send(message)
+        result = poller.result()
+    except Exception as ex:
+        print(ex)
+
+def send_reopen_task(title,Prof,details,dueDate,email,TA,comment):
+    try:
+        message = {
+            "content": {
+                "subject": f"Task Reopened: {title} reopened by {TA}",
+                "html": f"<html><h4>Reopen Comment: {comment}</h4><p>Title: {title}</p> <p>From: {Prof}</p><p>Due Date: {dueDate}</p><p>Details: {details}</p><p>Final Comment: {comment}</p> <p>Task has been reopened by {TA}</p><p>You can click on <a href='{url}'>Link</a> to go to website.</p></html>",
+                "plainText": f"Reopen Comment: {comment}\nTitle: {title}</p> <p>From: {Prof}\nDue Date: {dueDate}\nDetails: {details}\nTask has been reopened by {TA}",
             },
             "recipients": {
                 "to": [

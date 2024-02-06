@@ -1,6 +1,7 @@
-from .serializers import FAQSerializer,TicketCategorySerializer,FAQCategorySerializer,StudentDetailsSerializer,UserSerializer,TaskSerializer, TicketSerializer, ThreadSerializer, TaskThreadSerializer,StudentSerializer, CourseSerializer, TicketThreadSerializer
+from .serializers import GetGroupSerializer,FAQSerializer,TicketCategorySerializer,FAQCategorySerializer,StudentDetailsSerializer,UserSerializer,TaskSerializer, TicketSerializer, ThreadSerializer, TaskThreadSerializer,StudentSerializer, CourseSerializer, TicketThreadSerializer
 from .models import Student, StudentGroup, FAQCategory,TicketCategory,Task, Thread, Ticket, FAQ, Course, Group, User, TaskThread
 from rest_framework.response import Response
+from rest_framework import status
 from rest_framework.views import APIView
 from django.utils import timezone
 import pandas as pd 
@@ -11,7 +12,7 @@ from quickstart.management.azure_file_controller import download_blob, upload_fi
 from django_q.models import Schedule
 from pathlib import Path
 import mimetypes
-from django.http import Http404, HttpResponse
+from django.http import HttpResponse
    
 class getUser(APIView):
     permission_classes = [IsAuthenticated]
@@ -50,11 +51,76 @@ class getProf(APIView):
         serializer = UserSerializer(prof,many=True)
         return Response(serializer.data)
 
+class addStudent(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        groups=request.data.getlist('groups[]')
+        check=Student.objects.filter(VMS=request.data['VMS'])
+        if(check):
+            return Response({'error':'VMS already exists'},status=status.HTTP_400_BAD_REQUEST)
+        student=Student.objects.create(
+            VMS=request.data['VMS'],
+            name=request.data['name'],
+            program_year=request.data['program_year'],
+            student_type=request.data['student_type'],
+            course_type=request.data['course_type'],
+            nationality=request.data['nationality']
+        )
+        for group in groups:
+            split=group.split()
+            cur=Group.objects.get(course_code_id=split[0], code=split[1], type=split[2])
+            StudentGroup.objects.create(group=cur, student=student)
+
+        serializer = StudentDetailsSerializer(student)
+        return Response(serializer.data)
+    
+class editStudent(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        student=Student.objects.get(id=request.data['id'])
+        if(request.data.get('VMS')):
+            student.VMS=request.data['VMS']
+        if(request.data.get('name')):
+            student.name=request.data['name']
+        if(request.data.get('program_year')):
+            student.program_year=request.data['program_year']
+        if(request.data.get('student_type')):
+            student.student_type=request.data['student_type']
+        if(request.data.get('course_type')):
+            student.course_type=request.data['course_type']
+        if(request.data.get('nationality')):
+            student.nationality=request.data['nationality']
+        student.save()
+        studentGroups=StudentGroup.objects.filter(student=student)
+        groups=request.data.getlist('groups[]')
+        for group in groups:
+            split=group.split()
+            cur=Group.objects.get(course_code_id=split[0], code=split[1], type=split[2])
+            check=StudentGroup.objects.filter(group=cur, student=student).first()
+            if(not check):
+                new=StudentGroup.objects.create(group=cur, student=student)
+                studentGroups=studentGroups.exclude(pk=new.pk)
+            else:
+                studentGroups=studentGroups.exclude(pk=check.pk)
+        for i in studentGroups:
+            i.delete()
+        return Response({'success':'success'})
+
+class getGroups(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        groups=Group.objects.all()
+        serializer=GetGroupSerializer(groups,many=True)
+        return Response(serializer.data)
+
 class getStudent(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        student=Student.objects.all()
+        student=Student.objects.all().prefetch_related('student_group','Ticket_student').order_by('-id')
         serializer = StudentDetailsSerializer(student,many=True)
         return Response(serializer.data)
     
@@ -83,7 +149,7 @@ class getClass(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self,request):
-        course=Course.objects.all()
+        course=Course.objects.all().prefetch_related('course_group__group_student__student','course_group__group_student__group')
         serializer=CourseSerializer(course,many=True)
         return Response(serializer.data)
     
@@ -157,12 +223,25 @@ class createClass(APIView):
                     i+=1
             i+=1
         return Response({'success':'success'})
-    
+
+class deleteUser(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        email=request.data['email']
+        user=User.objects.get(email=email)
+        user.delete()
+        return Response({'success':'success'})
+
 class createAccess(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        [user,created]=User.objects.get_or_create(email=request.data['email'], user_type=request.data['access'])
+        email=request.data['email']
+        if(request.data['access']=='Prof'):
+            hold=request.data['email'].split('@')
+            email=hold[0]+'@staff.main.'+hold[1]
+        [user,created]=User.objects.get_or_create(email=email, send=request.data['email'],user_type=request.data['access'])
         prof=request.user
         #need send email
         Schedule.objects.create(
@@ -181,12 +260,12 @@ class getTask(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        task=Task.objects.all().filter(prof=request.user, status='ongoing').order_by('date')
+        task=Task.objects.all().filter(Q(prof=request.user) & ~Q(status='completed')).order_by('date')
         if(task):
             serializer = TaskSerializer(task,many=True)
             return Response(serializer.data)
         else:
-            task=Task.objects.all().filter(TA=request.user, status='ongoing').order_by('date')
+            task=Task.objects.all().filter(Q(TA=request.user) & ~Q(status='completed')).order_by('date')
             serializer = TaskSerializer(task,many=True)
             return Response(serializer.data)
         
@@ -236,7 +315,7 @@ class createTask(APIView):
                                     title=request.data['title'], 
                                     details=request.data['details'],
                                     dueDate=request.data['dueDate'],
-                                    status="ongoing")
+                                    status=request.user.name)
             if 'file' in request.FILES:
                 task.url=url
                 task.file_name = file.name
@@ -247,7 +326,7 @@ class createTask(APIView):
                     "Prof":f"{request.user.name}",
                     "details":f"{request.data['details']}",
                     "dueDate":f"{request.data['dueDate']}",
-                    "email":f"{User_Ta.email}"},
+                    "email":f"{User_Ta.send}"},
             name="send email for task",
             schedule_type=Schedule.ONCE,
             next_run=timezone.now(),
@@ -270,23 +349,91 @@ class completeTask(APIView):
     def post(self,request):
         task=Task.objects.get(id=request.data['id'])
         task.status='completed'
+        thread=TaskThread.objects.create( 
+                            by=request.user, 
+                            date=timezone.now(), 
+                            details=request.data['comment'],
+                            Task=task,
+                            )
         task.save()
-        Schedule.objects.create(
-            func="quickstart.func.send_completed_task",
-            kwargs={"title": f"{task.title}",
-                    "Prof":f"{task.prof.name}",
-                    "details":f"{task.details}",
-                    "dueDate":f"{task.dueDate}",
-                    "email":f"{task.prof.email}",
-                    "TA":f"{request.user.name}"
-            },
-            name="send email for completed task",
-            schedule_type=Schedule.ONCE,
-            next_run=timezone.now(),
-            )
+        if(request.user.user_type=='TA'):
+            Schedule.objects.create(
+                func="quickstart.func.send_completed_task",
+                kwargs={"title": f"{task.title}",
+                        "Prof":f"{task.prof.name}",
+                        "details":f"{task.details}",
+                        "dueDate":f"{task.dueDate}",
+                        "email":f"{task.prof.send}",
+                        "TA":f"{request.user.name}",
+                        "comment":f"{request.data['comment']}"
+                },
+                name="send email for completed task",
+                schedule_type=Schedule.ONCE,
+                next_run=timezone.now(),
+                )
+        else:
+            Schedule.objects.create(
+                func="quickstart.func.send_completed_task",
+                kwargs={"title": f"{task.title}",
+                        "Prof":f"{task.prof.name}",
+                        "details":f"{task.details}",
+                        "dueDate":f"{task.dueDate}",
+                        "email":f"{task.TA.send}",
+                        "TA":f"{request.user.name}",
+                        "comment":f"{request.data['comment']}"
+                },
+                name="send email for completed task",
+                schedule_type=Schedule.ONCE,
+                next_run=timezone.now(),
+                )
         serializer = TaskSerializer(task)
         return Response(serializer.data)
-    
+
+class reopenTask(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self,request):
+        task=Task.objects.get(id=request.data['id'])
+        task.status=request.user.name
+        task.save()
+        thread=TaskThread.objects.create( 
+                            by=request.user, 
+                            date=timezone.now(), 
+                            details=request.data['comment'],
+                            Task=task,
+                            )
+        if(request.user.user_type=='TA'):
+            Schedule.objects.create(
+                func="quickstart.func.send_reopen_task",
+                kwargs={"title": f"{task.title}",
+                        "Prof":f"{task.prof.name}",
+                        "details":f"{task.details}",
+                        "dueDate":f"{task.dueDate}",
+                        "email":f"{task.prof.send}",
+                        "TA":f"{request.user.name}",
+                        "comment":f"{request.data['comment']}"
+                },
+                name="send email for reopened task ticket",
+                schedule_type=Schedule.ONCE,
+                next_run=timezone.now(),
+            )
+        else:
+            Schedule.objects.create(
+                    func="quickstart.func.send_reopen_task",
+                    kwargs={"title": f"{task.title}",
+                            "Prof":f"{task.prof.name}",
+                            "details":f"{task.details}",
+                            "dueDate":f"{task.dueDate}",
+                            "email":f"{task.TA.send}",
+                            "TA":f"{request.user.name}",
+                            "comment":f"{request.data['comment']}"
+                    },
+                    name="send email for reopened task ticket",
+                    schedule_type=Schedule.ONCE,
+                    next_run=timezone.now(),
+                )
+        return Response({"success":"success"})
+
 class reopenTicket(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -309,7 +456,7 @@ class reopenTicket(APIView):
                         "category":f"{ticket.category}",
                         "severity":f"{ticket.severity}",
                         "details":f"{ticket.details}",
-                        "email":f"{ticket.prof.email}",
+                        "email":f"{ticket.prof.send}",
                         "Prof":f"{request.user.name}",
                         "comment":f"{request.data['comment']}"
                         },
@@ -326,7 +473,7 @@ class reopenTicket(APIView):
                             "category":f"{ticket.category}",
                             "severity":f"{ticket.severity}",
                             "details":f"{ticket.details}",
-                            "email":f"{ticket.TA.email}",
+                            "email":f"{ticket.TA.send}",
                             "Prof":f"{request.user.name}",
                             "comment":f"{request.data['comment']}"
                             },
@@ -377,6 +524,38 @@ class downloadFile(APIView):
             response['Content-Disposition'] = f'attachment; filename={file_name}'
             return response
         return Response({"fail","fail"})
+    
+class downloadThreadFile(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request): 
+        thread = Thread.objects.filter(pk=request.data['id']).first()
+        file_name = thread.file_name
+        file_type, _ = mimetypes.guess_type(file_name)
+        url = thread.url
+        blob_name = url.split("/")[-1]
+        blob_content = download_blob(blob_name)
+        if blob_content:
+            response = HttpResponse(blob_content.readall(), content_type=file_type)
+            response['Content-Disposition'] = f'attachment; filename={file_name}'
+            return response
+        return Response({"fail","fail"})
+    
+class downloadTaskThreadFile(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request): 
+        thread = TaskThread.objects.filter(pk=request.data['id']).first()
+        file_name = thread.file_name
+        file_type, _ = mimetypes.guess_type(file_name)
+        url = thread.url
+        blob_name = url.split("/")[-1]
+        blob_content = download_blob(blob_name)
+        if blob_content:
+            response = HttpResponse(blob_content.readall(), content_type=file_type)
+            response['Content-Disposition'] = f'attachment; filename={file_name}'
+            return response
+        return Response({"fail","fail"})
 
 class createTicket(APIView):
     permission_classes = [IsAuthenticated]
@@ -410,7 +589,7 @@ class createTicket(APIView):
                     "category":f"{request.data['category']}",
                     "severity":f"{request.data['severity']}",
                     "details":f"{request.data['details']}",
-                    "email":f"{prof.email}",
+                    "email":f"{prof.send}",
                     },
             name="send email for ticket approval",
             schedule_type=Schedule.ONCE,
@@ -434,8 +613,13 @@ class completeTicket(APIView):
 
     def post(self,request):
         ticket=Ticket.objects.get(id=request.data['id'])
+        thread=Thread.objects.create( 
+                                 by=request.user, 
+                                 date=timezone.now(), 
+                                 details=request.data['comment'],
+                                 Ticket=ticket,
+                                 )
         ticket.status='completed'
-        ticket.final_comment=request.data['comment']
         ticket.save()
         Schedule.objects.create(
                 func="quickstart.func.send_completed_ticket",
@@ -445,7 +629,7 @@ class completeTicket(APIView):
                         "category":f"{ticket.category}",
                         "severity":f"{ticket.severity}",
                         "details":f"{ticket.details}",
-                        "email":f"{ticket.TA.email}",
+                        "email":f"{ticket.TA.send}",
                         "Prof":f"{request.user.name}",
                         "comment":f"{request.data['comment']}"
                         },
@@ -477,6 +661,15 @@ class createThread(APIView):
                                  details=request.data['details'],
                                  Ticket=ticket,
                                  )
+        file=None
+        if 'file' in request.FILES:
+            file = request.FILES['file']
+            url = upload_file_to_blob(file)
+            if not url:
+                return Response({'fail':'fail'})
+            thread.url=url
+            thread.file_name = file.name
+            thread.save()
         if(request.user.user_type=='TA'):
             Schedule.objects.create(
                 func="quickstart.func.send_thread",
@@ -484,7 +677,7 @@ class createThread(APIView):
                         "by":f"{request.user.name}",
                         "ticket":f"{ticket.title}",
                         "details":f"{request.data['details']}",
-                        "email":f"{ticket.prof.email}"},
+                        "email":f"{ticket.prof.send}"},
                 name="send email for ticket",
                 schedule_type=Schedule.ONCE,
                 next_run=timezone.now(),
@@ -496,7 +689,7 @@ class createThread(APIView):
                         "by":f"{request.user.name}",
                         "ticket":f"{ticket.title}",
                         "details":f"{request.data['details']}",
-                        "email":f"{ticket.TA.email}"},
+                        "email":f"{ticket.TA.send}"},
                 name="send email for ticket",
                 schedule_type=Schedule.ONCE,
                 next_run=timezone.now(),
@@ -522,6 +715,15 @@ class createTaskThread(APIView):
                                  details=request.data['details'],
                                  Task=task,
                                  )
+        file=None
+        if 'file' in request.FILES:
+            file = request.FILES['file']
+            url = upload_file_to_blob(file)
+            if not url:
+                return Response({'fail':'fail'})
+            thread.url=url
+            thread.file_name = file.name
+            thread.save()
         if(request.user.user_type=='TA'):
             Schedule.objects.create(
                 func="quickstart.func.send_task_thread",
@@ -529,7 +731,7 @@ class createTaskThread(APIView):
                         "by":f"{request.user.name}",
                         "ticket":f"{task.title}",
                         "details":f"{request.data['details']}",
-                        "email":f"{task.prof.email}"},
+                        "email":f"{task.prof.send}"},
                 name="send email for ticket",
                 schedule_type=Schedule.ONCE,
                 next_run=timezone.now(),
@@ -541,7 +743,7 @@ class createTaskThread(APIView):
                         "by":f"{request.user.name}",
                         "ticket":f"{task.title}",
                         "details":f"{request.data['details']}",
-                        "email":f"{task.TA.email}"},
+                        "email":f"{task.TA.send}"},
                 name="send email for ticket",
                 schedule_type=Schedule.ONCE,
                 next_run=timezone.now(),
@@ -566,20 +768,22 @@ class count(APIView):
             ticketbyother=Ticket.objects.all().filter(Q(prof=request.user) & ~Q(status=request.user.name) & ~Q(status='completed')).count()
             ticketcompleted=Ticket.objects.all().filter(Q(prof=request.user)  & Q(status='completed')).count()
             taskcompleted=Task.objects.all().filter(prof=request.user, status='completed').count()
-            taskongoing=Task.objects.all().filter(Q(prof=request.user) & ~Q(status='completed')).count()  
+            taskbyuser=Task.objects.all().filter(Q(prof=request.user) & Q(status=request.user.name)).count()
+            taskbyother=Task.objects.all().filter(Q(prof=request.user) & ~Q(status=request.user.name) & ~Q(status='completed')).count()
             return Response({
                 'ticket':[ticketbyuser,ticketbyother,ticketcompleted],
-                'task':[taskongoing,taskcompleted]
+                'task':[taskbyuser,taskbyother,taskcompleted]
             })      
         else:
             ticketbyuser=Ticket.objects.all().filter(Q(TA=request.user) & Q(status=request.user.name)).count()
             ticketbyother=Ticket.objects.all().filter(Q(TA=request.user) & ~Q(status=request.user.name) & ~Q(status='completed')).count()
             ticketcompleted=Ticket.objects.all().filter(Q(TA=request.user) & Q(status='completed')).count()
             taskcompleted=Task.objects.all().filter(TA=request.user, status='completed').count()
-            taskongoing=Task.objects.all().filter(Q(TA=request.user) & ~Q(status='completed')).count()
+            taskbyuser=Task.objects.all().filter(Q(TA=request.user) & Q(status=request.user.name)).count()
+            taskbyother=Task.objects.all().filter(Q(TA=request.user) & ~Q(status=request.user.name) & ~Q(status='completed')).count()
             return Response({
                 'ticket':[ticketbyuser,ticketbyother,ticketcompleted],
-                'task':[taskongoing,taskcompleted]
+                'task':[taskbyuser,taskbyother,taskcompleted]
             })
         
 class Faq(APIView):
