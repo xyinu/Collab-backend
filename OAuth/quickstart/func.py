@@ -48,7 +48,6 @@ def send_ticket_approve(title,TA,student,category,severity,details,email):
             "senderAddress": f"{sender_email}"
         }
         poller = email_client.begin_send(message)
-        print(email)
         result = poller.result()
     except Exception as ex:
         print(ex)

@@ -81,6 +81,12 @@ class Group(models.Model):
     def __str__(self):
         return self.code
 
+class TAGroup(models.Model):
+    TA = models.ForeignKey(
+        User, related_name='group_TA' ,on_delete=models.CASCADE
+    )
+    group=models.ForeignKey(Group,related_name='group_Ta', on_delete=models.CASCADE)
+
 class StudentGroup(models.Model):
     group=models.ForeignKey(Group,related_name='group_student', on_delete=models.CASCADE)
     student=models.ForeignKey(Student, related_name='student_group',on_delete=models.CASCADE)
@@ -89,11 +95,12 @@ class StudentGroup(models.Model):
 class Task(models.Model):
     date=models.DateTimeField()
     TA = models.ForeignKey(
-        User, related_name='Task_TA' ,on_delete=models.CASCADE, blank=True, null=True
+        User, related_name='Task_TA' ,on_delete=models.SET_NULL, blank=True, null=True
     )
     prof = models.ForeignKey(
-        User, related_name='Task_prof',on_delete=models.CASCADE, blank=True, null=True
+        User, related_name='Task_prof',on_delete=models.SET_NULL, blank=True, null=True
     )
+    group=models.ForeignKey(Group,related_name='Task_group',on_delete=models.SET_NULL, blank=True, null=True)
     title=models.CharField(max_length=50)
     details=models.TextField()
     dueDate=models.DateTimeField()
@@ -111,7 +118,7 @@ class TaskThread(models.Model):
     )
     details=models.TextField()
     by= models.ForeignKey(
-        User,on_delete=models.CASCADE, blank=True, null=True
+        User,on_delete=models.SET_NULL, blank=True, null=True
     )
     url = models.URLField(null=True,blank=True)
     file_name=models.CharField(max_length=200, blank=True,null=True)
@@ -123,15 +130,16 @@ class Ticket(models.Model):
          editable = False) 
     date=models.DateTimeField()
     TA = models.ForeignKey(
-        User, related_name='Ticket_TA',on_delete=models.CASCADE, blank=True, null=True
+        User, related_name='Ticket_TA',on_delete=models.SET_NULL, blank=True, null=True
     )
     prof = models.ForeignKey(
-        User,  related_name='Ticket_prof',on_delete=models.CASCADE, blank=True, null=True
+        User,  related_name='Ticket_prof',on_delete=models.SET_NULL, blank=True, null=True
     )
     student = models.ForeignKey(
         Student,  related_name='Ticket_student',on_delete=models.CASCADE, blank=True, null=True
     )
     details=models.TextField()
+    group=models.ForeignKey(Group,related_name='Ticket_group',on_delete=models.SET_NULL, blank=True, null=True)
     title=models.CharField(max_length=50)
     status=models.CharField(max_length=80)
     category=models.CharField(max_length=50)
@@ -149,7 +157,7 @@ class Thread(models.Model):
     )
     details=models.TextField()
     by= models.ForeignKey(
-        User,on_delete=models.CASCADE, blank=True, null=True
+        User,on_delete=models.SET_NULL, blank=True, null=True
     )
     url = models.URLField(null=True,blank=True)
     file_name=models.CharField(max_length=200, blank=True,null=True)

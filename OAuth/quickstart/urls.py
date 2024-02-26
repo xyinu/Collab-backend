@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import getUser, getGroups,downloadTaskThreadFile,downloadThreadFile,deleteUser,reopenTask,addStudent,editStudent,downloadFile,downloadTaskFile,DeleteFaq,getStudentTrunc,deleteClass,editClass,TicketCategoryView,FAQCategoryView,reopenTicket,Faq,getUserType,createClass, createTaskThread,login, createAccess, createTask, createTicket, createThread, completeTask,completeTicket,getTask,getClass,getThread, getTicketWithThread,getProf,getStudent,getTAs, getCompletedTask, getCompletedTicketWithThread,count
+from .views import getUser, editAccess,data,getGroups,downloadTaskThreadFile,downloadThreadFile,deleteUser,reopenTask,addStudent,editStudent,downloadFile,downloadTaskFile,DeleteFaq,getStudentTrunc,deleteClass,editClass,TicketCategoryView,FAQCategoryView,reopenTicket,Faq,getUserType,createClass, createTaskThread,login, createAccess, createTask, createTicket, createThread, completeTask,completeTicket,getTask,getClass,getThread, getTicketWithThread,getProf,getStudent,getTAs, getCompletedTask, getCompletedTicketWithThread,count
 
 app_name = 'quickstart'
 
@@ -13,6 +13,7 @@ urlpatterns = [
     path('deleteuser/', deleteUser.as_view(), name='deleteUser'),
     path('login/', login.as_view(), name='login'),
     path('createaccess/', createAccess.as_view(), name='createAccess'),
+    path('editaccess/', editAccess.as_view(), name='editAccess'),
     path('task/', getTask.as_view(), name='getTask'),
     path('completedtask/', getCompletedTask.as_view(), name='getCompletedTask'),
     path('createtask/', createTask.as_view(), name='createTask'),
@@ -42,4 +43,5 @@ urlpatterns = [
     path('downloadtaskfile/',downloadTaskFile.as_view(),name='downloadTaskFile'),
     path('downloadtaskthreadfile/',downloadTaskThreadFile.as_view(),name='downloadTaskThreadFile'),
     path('group/', getGroups.as_view(), name='getGroups'),
+    path('data/', data.as_view(), name='data'),
     ]

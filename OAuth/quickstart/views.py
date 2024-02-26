@@ -1,5 +1,5 @@
-from .serializers import GetGroupSerializer,FAQSerializer,TicketCategorySerializer,FAQCategorySerializer,StudentDetailsSerializer,UserSerializer,TaskSerializer, TicketSerializer, ThreadSerializer, TaskThreadSerializer,StudentSerializer, CourseSerializer, TicketThreadSerializer
-from .models import Student, StudentGroup, FAQCategory,TicketCategory,Task, Thread, Ticket, FAQ, Course, Group, User, TaskThread
+from .serializers import GetGroupSerializer,TASerializer,StudentDetailsSerializerTA,FAQSerializer,TicketCategorySerializer,FAQCategorySerializer,StudentDetailsSerializer,UserSerializer,TaskSerializer, TicketSerializer, ThreadSerializer, TaskThreadSerializer,StudentSerializer, CourseSerializer, TicketThreadSerializer
+from .models import Student, StudentGroup, TAGroup,FAQCategory,TicketCategory,Task, Thread, Ticket, FAQ, Course, Group, User, TaskThread
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
@@ -13,13 +13,15 @@ from django_q.models import Schedule
 from pathlib import Path
 import mimetypes
 from django.http import HttpResponse
+from django.db.models import Count
    
 class getUser(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         userTA=User.objects.all().filter(user_type='TA')
-        serializerTA = UserSerializer(userTA,many=True)
+        serializerTA = TASerializer(userTA,many=True)
+        
         userProf=User.objects.all().filter(user_type='Prof')
         serializerProf = UserSerializer(userProf,many=True)
 
@@ -33,7 +35,8 @@ class getUserType(APIView):
 
     def get(self, request):
         userType=request.user.user_type
-        return Response({"type":userType})
+        email=request.user.email
+        return Response({"type":userType,"email":email})
     
 class getTAs(APIView):
     permission_classes = [IsAuthenticated]
@@ -112,17 +115,28 @@ class getGroups(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        groups=Group.objects.all()
-        serializer=GetGroupSerializer(groups,many=True)
-        return Response(serializer.data)
-
+        if(request.user.user_type=='TA'):
+            groups=Group.objects.filter(group_Ta__TA=request.user)
+            serializer=GetGroupSerializer(groups,many=True)
+            return Response(serializer.data)
+        else:
+            groups=Group.objects.all()
+            serializer=GetGroupSerializer(groups,many=True)
+            return Response(serializer.data)
+    
 class getStudent(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        student=Student.objects.all().prefetch_related('student_group','Ticket_student').order_by('-id')
-        serializer = StudentDetailsSerializer(student,many=True)
-        return Response(serializer.data)
+        if(request.user.user_type=='TA'):
+            tagroups=Group.objects.filter(group_Ta__TA=request.user)
+            student=Student.objects.filter(student_group__group__in=tagroups).prefetch_related('student_group','Ticket_student').order_by('id')
+            serializer = StudentDetailsSerializerTA(student,many=True)
+            return Response(serializer.data)
+        else:
+            student=Student.objects.all().prefetch_related('student_group','Ticket_student').order_by('id')
+            serializer = StudentDetailsSerializer(student,many=True)
+            return Response(serializer.data)
     
 class getStudentTrunc(APIView):
     permission_classes = [IsAuthenticated]
@@ -184,7 +198,7 @@ class createClass(APIView):
 
     def post(self, request):
         excel_file = request.FILES['file']
-        df= pd.read_excel(excel_file,header=None)
+        df= pd.read_excel(excel_file,header=None,engine='openpyxl')
         course_code=df.iloc[2][0].split()[1]
         class_type=df.iloc[3][0].split()[2]
         current_course=Course.objects.filter(code=course_code).first()
@@ -233,15 +247,44 @@ class deleteUser(APIView):
         user.delete()
         return Response({'success':'success'})
 
+class editAccess(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        groups=request.data.getlist('group[]')
+        user=User.objects.filter(email=request.data['email']).first()
+        existing=TAGroup.objects.filter(TA=user)
+        for i in groups:
+            split=i.split()
+            cur=Group.objects.get(course_code_id=split[0], code=split[1], type=split[2])
+            check=TAGroup.objects.filter(TA=user,group=cur).first()
+            if(not check):
+                newTAGroup=TAGroup.objects.create(TA=user,group=cur)
+                existing=existing.exclude(pk=newTAGroup.pk)
+            else:
+                existing=existing.exclude(pk=check.pk)
+        for i in existing:
+            i.delete()
+        return Response({'success':'success'})
+
+
 class createAccess(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        groups=request.data.getlist('group[]')
         email=request.data['email']
         if(request.data['access']=='Prof'):
             hold=request.data['email'].split('@')
             email=hold[0]+'@staff.main.'+hold[1]
         [user,created]=User.objects.get_or_create(email=email, send=request.data['email'],user_type=request.data['access'])
+        if(request.data['access']=='TA'):
+            for i in groups:
+                split=i.split()
+                cur=Group.objects.get(course_code_id=split[0], code=split[1], type=split[2])
+                check=TAGroup.objects.filter(TA=user,group=cur)
+                if(not check):
+                    TAGroup.objects.create(TA=user,group=cur)
         prof=request.user
         #need send email
         Schedule.objects.create(
@@ -303,6 +346,8 @@ class createTask(APIView):
 
     def post(self, request):
         tas=request.data.getlist('tas[]')
+        split=request.data['group'].split()
+        cur=Group.objects.get(course_code_id=split[0], code=split[1], type=split[2])
         file=None
         if 'file' in request.FILES:
             file = request.FILES['file']
@@ -315,6 +360,7 @@ class createTask(APIView):
                                     title=request.data['title'], 
                                     details=request.data['details'],
                                     dueDate=request.data['dueDate'],
+                                    group=cur,
                                     status=request.user.name)
             if 'file' in request.FILES:
                 task.url=url
@@ -487,14 +533,9 @@ class getTicketWithThread (APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        ticket=Ticket.objects.all().filter(Q(prof=request.user)& ~Q(status='completed')).order_by('date')
-        if(ticket):
-            serializer = TicketThreadSerializer(ticket,many=True)
-            return Response(serializer.data)
-        else:
-            ticket=Ticket.objects.all().filter(Q(TA=request.user)& ~Q(status='completed')).order_by('date')
-            serializer = TicketThreadSerializer(ticket,many=True)
-            return Response(serializer.data)
+        ticket=Ticket.objects.all().filter((Q(prof=request.user) |Q(TA=request.user))& ~Q(status='completed')).order_by('date')
+        serializer = TicketThreadSerializer(ticket,many=True)
+        return Response(serializer.data)
 
 class getCompletedTicketWithThread (APIView):
     permission_classes = [IsAuthenticated]
@@ -563,6 +604,8 @@ class createTicket(APIView):
     def post(self, request):
         prof=User.objects.get(email=request.data['prof'])
         student=Student.objects.get(VMS=request.data['student'])
+        split=request.data['group'].split()
+        cur=Group.objects.get(course_code_id=split[0], code=split[1], type=split[2])
         ticket=Ticket.objects.create(prof=prof, 
                                  TA=request.user, 
                                  date=timezone.now(), 
@@ -571,6 +614,7 @@ class createTicket(APIView):
                                  category=request.data['category'],
                                  severity=request.data['severity'],
                                  student=student,
+                                 group=cur,
                                  status=request.user.name)
         file=None
         if 'file' in request.FILES:
@@ -678,7 +722,7 @@ class createThread(APIView):
                         "ticket":f"{ticket.title}",
                         "details":f"{request.data['details']}",
                         "email":f"{ticket.prof.send}"},
-                name="send email for ticket",
+                name="send email for thread",
                 schedule_type=Schedule.ONCE,
                 next_run=timezone.now(),
             )
@@ -690,7 +734,7 @@ class createThread(APIView):
                         "ticket":f"{ticket.title}",
                         "details":f"{request.data['details']}",
                         "email":f"{ticket.TA.send}"},
-                name="send email for ticket",
+                name="send email for thread",
                 schedule_type=Schedule.ONCE,
                 next_run=timezone.now(),
             )
@@ -762,29 +806,16 @@ class count(APIView):
     permission_classes = [IsAuthenticated]
  
     def get(self, request):
-        ticket=Ticket.objects.all().filter(prof=request.user)
-        if(ticket):
-            ticketbyuser=Ticket.objects.all().filter(Q(prof=request.user) & Q(status=request.user.name)).count()
-            ticketbyother=Ticket.objects.all().filter(Q(prof=request.user) & ~Q(status=request.user.name) & ~Q(status='completed')).count()
-            ticketcompleted=Ticket.objects.all().filter(Q(prof=request.user)  & Q(status='completed')).count()
-            taskcompleted=Task.objects.all().filter(prof=request.user, status='completed').count()
-            taskbyuser=Task.objects.all().filter(Q(prof=request.user) & Q(status=request.user.name)).count()
-            taskbyother=Task.objects.all().filter(Q(prof=request.user) & ~Q(status=request.user.name) & ~Q(status='completed')).count()
-            return Response({
-                'ticket':[ticketbyuser,ticketbyother,ticketcompleted],
-                'task':[taskbyuser,taskbyother,taskcompleted]
-            })      
-        else:
-            ticketbyuser=Ticket.objects.all().filter(Q(TA=request.user) & Q(status=request.user.name)).count()
-            ticketbyother=Ticket.objects.all().filter(Q(TA=request.user) & ~Q(status=request.user.name) & ~Q(status='completed')).count()
-            ticketcompleted=Ticket.objects.all().filter(Q(TA=request.user) & Q(status='completed')).count()
-            taskcompleted=Task.objects.all().filter(TA=request.user, status='completed').count()
-            taskbyuser=Task.objects.all().filter(Q(TA=request.user) & Q(status=request.user.name)).count()
-            taskbyother=Task.objects.all().filter(Q(TA=request.user) & ~Q(status=request.user.name) & ~Q(status='completed')).count()
-            return Response({
-                'ticket':[ticketbyuser,ticketbyother,ticketcompleted],
-                'task':[taskbyuser,taskbyother,taskcompleted]
-            })
+        ticketbyuser=Ticket.objects.all().filter((Q(prof=request.user) |Q(TA=request.user)) & Q(status=request.user.name)).count()
+        ticketbyother=Ticket.objects.all().filter((Q(prof=request.user) |Q(TA=request.user)) & ~Q(status=request.user.name) & ~Q(status='completed')).count()
+        ticketcompleted=Ticket.objects.all().filter((Q(prof=request.user) |Q(TA=request.user))  & Q(status='completed')).count()
+        taskcompleted=Task.objects.all().filter((Q(prof=request.user) |Q(TA=request.user)) &Q(status='completed')).count()
+        taskbyuser=Task.objects.all().filter((Q(prof=request.user) |Q(TA=request.user)) & Q(status=request.user.name)).count()
+        taskbyother=Task.objects.all().filter((Q(prof=request.user) |Q(TA=request.user)) & ~Q(status=request.user.name) & ~Q(status='completed')).count()
+        return Response({
+            'ticket':[ticketbyuser,ticketbyother,ticketcompleted],
+            'task':[taskbyuser,taskbyother,taskcompleted]
+        })      
         
 class Faq(APIView):
     permission_classes = [IsAuthenticated]
@@ -862,3 +893,89 @@ class FAQCategoryView(APIView):
         )
         serializer=FAQCategorySerializer(category)
         return Response(serializer.data)
+    
+class data(APIView):
+ 
+    def get(self, request):    
+        category= TicketCategory.objects.all()
+        ticketCategoryLabel=[]
+        ticketCategoryCount=[]
+        for i in category:
+            tick=Ticket.objects.filter(category=i.category).count()
+            ticketCategoryLabel.append(i.category)
+            ticketCategoryCount.append(tick)
+        course= Course.objects.all()
+        ticketCourseCount=[]
+        ticketCourseLabel=[]
+        taskCourseCount=[]
+        taskCourseLabel=[]
+        for i in course:
+            group=Group.objects.filter(course_code=i.code)
+            tickcount=0
+            taskcount=0
+            for k in group:
+                tick=Ticket.objects.filter(group=k).count()
+                tickcount+=tick
+                task=Task.objects.filter(group=k).count()
+                taskcount+=task
+            ticketCourseCount.append(tickcount)
+            ticketCourseLabel.append(i.code)
+            taskCourseCount.append(taskcount)
+            taskCourseLabel.append(i.code)
+        group=Group.objects.all()
+        ticketGroupCount=[]
+        ticketGroupLabel=[]
+        taskGroupCount=[]
+        taskGroupLabel=[]
+        for i in group:
+            tick=Ticket.objects.filter(group=i).count()
+            ticketGroupLabel.append(f"{i.course_code}, {i.code}, {i.type}")
+            ticketGroupCount.append(tick)
+            task=Task.objects.all().filter(group=i).count()
+            taskGroupLabel.append(f"{i.course_code}, {i.code}, {i.type}")
+            taskGroupCount.append(task)
+        students=Student.objects.filter(Ticket_student__isnull=False).annotate(num=Count('Ticket_student')).order_by('-num').distinct()
+        studentCount=[]
+        studentLabel=[]
+        count=0
+        for i in students:
+            if(count==5):
+                break
+            count+=1
+            tick=Ticket.objects.filter(student=i).count()
+            studentCount.append(tick)
+            studentLabel.append(i.name)
+        
+        return Response({
+            'ticket':{
+                'Category':{
+                    'label':ticketCategoryLabel,
+                    'count':ticketCategoryCount
+                },
+                'Course':{
+                    'label':ticketCourseLabel,
+                    'count':ticketCourseCount
+                },
+                'Group':{
+                    'label':ticketGroupLabel,
+                    'count':ticketGroupCount
+                },
+                'Student':{
+                    'label':studentLabel,
+                    'count':studentCount
+                }
+            },
+            'task':{
+                'Course':{
+                    'label':taskCourseLabel,
+                    'count':taskCourseCount
+                },
+                'Group':{
+                    'label':taskGroupLabel,
+                    'count':taskGroupCount
+                }
+            }
+        })
+
+            
+        

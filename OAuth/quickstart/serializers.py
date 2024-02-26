@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Task, Ticket, Thread, StudentGroup, Group,Student, Course, FAQ, TaskThread, TicketCategory, FAQCategory
+from .models import User, Task, TAGroup,Ticket, Thread, StudentGroup, Group,Student, Course, FAQ, TaskThread, TicketCategory, FAQCategory
 from django.utils import timezone, dateformat
 from django.db.models import Q
 
@@ -26,33 +26,20 @@ class TicketSerializer(serializers.ModelSerializer):
 class ThreadSerializer(serializers.ModelSerializer):
     by=serializers.CharField(source='by.name')
     type=serializers.CharField(source='by.user_type')
+    email=serializers.CharField(source='by.email')
+
     class Meta:
         model = Thread
-        fields = ['by', 'type','details', 'date','file_name','id']
+        fields = ['by', 'type','details', 'date','file_name','id','email']
 
 class TaskThreadSerializer(serializers.ModelSerializer):
     by=serializers.CharField(source='by.name')
     type=serializers.CharField(source='by.user_type')
+    email=serializers.CharField(source='by.email')
+
     class Meta:
         model = TaskThread
-        fields = ['by', 'type','details', 'date','file_name','id']
-
-class TaskSerializer(serializers.ModelSerializer):
-    TA = serializers.CharField(source='TA.name')
-    prof= serializers.CharField(source='prof.name')
-    thread = TaskThreadSerializer(source='task_thread',many=True)
-
-    class Meta:
-        model = Task
-        fields = ['id','date', 'TA', 'prof', 'title', 'details', 'dueDate', 'status','thread','file_name']
-class TicketThreadSerializer(serializers.ModelSerializer):
-    TA = serializers.CharField(source='TA.name')
-    prof= serializers.CharField(source='prof.name')
-    student=StudentSerializer()
-    thread = ThreadSerializer(source='ticket_thread',many=True)
-    class Meta:
-        model = Ticket
-        fields = ['id','date', 'TA', 'prof', 'student','title', 'details', 'category', 'severity', 'status','thread','file_name']
+        fields = ['by', 'type','details', 'date','file_name','id','email']
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -69,6 +56,37 @@ class GroupDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model=Group
         fields = ['code','type','course_code']
+
+class TAGroupSerializer(serializers.ModelSerializer):
+    details=GroupDetailSerializer(source='group')
+    class Meta:    
+        model=TAGroup
+        fields=['details']
+    
+class TASerializer(serializers.ModelSerializer):
+    group=TAGroupSerializer(source='group_TA',many=True)
+    class Meta:
+        model = User
+        fields = ['name','email','group']
+
+class TaskSerializer(serializers.ModelSerializer):
+    TA = serializers.CharField(source='TA.name')
+    prof= serializers.CharField(source='prof.name')
+    thread = TaskThreadSerializer(source='task_thread',many=True)
+    group=GroupDetailSerializer()
+    class Meta:
+        model = Task
+        fields = ['id','date', 'TA', 'prof', 'title', 'details', 'dueDate', 'status','thread','file_name','group']
+
+class TicketThreadSerializer(serializers.ModelSerializer):
+    TA = serializers.CharField(source='TA.name')
+    prof= serializers.CharField(source='prof.name')
+    student=StudentSerializer()
+    thread = ThreadSerializer(source='ticket_thread',many=True)
+    group=GroupDetailSerializer()
+    class Meta:
+        model = Ticket
+        fields = ['id','date', 'TA', 'prof', 'student','title', 'details', 'category', 'severity', 'status','thread','file_name','group']
 class StudentGroupSerializer(serializers.ModelSerializer):
     group=GroupDetailSerializer()
     class Meta:
@@ -86,6 +104,13 @@ class StudentDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model=Student
         fields = ['id','name','VMS','program_year','student_type','course_type','nationality','group_course','tickets']
+
+class StudentDetailsSerializerTA(serializers.ModelSerializer):
+    group_course=StudentGroupSerializer(source='student_group',many=True)
+    tickets=TicketDetailSerializer(source='Ticket_student',many=True)
+    class Meta:
+        model=Student
+        fields = ['id','name','VMS','program_year','group_course','tickets']
 
 class TicketCategorySerializer(serializers.ModelSerializer):
     class Meta:
