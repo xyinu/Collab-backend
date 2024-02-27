@@ -73,6 +73,7 @@ class Course(models.Model):
 class Group(models.Model):
     code = models.CharField(max_length=20) 
     type = models.CharField(max_length=20)
+    name = models.CharField(max_length=255,default='')
     course_code=models.ForeignKey(Course, related_name="course_group",on_delete=models.CASCADE)
 
     class Meta:

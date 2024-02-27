@@ -45,3 +45,53 @@ urlpatterns = [
     path('group/', getGroups.as_view(), name='getGroups'),
     path('data/', data.as_view(), name='data'),
     ]
+
+
+        # course=Course.objects.all()
+        # hold=[]
+        # for i in course:
+        #     each={}
+        #     each['code']=i.code
+        #     group=Group.objects.filter(course_code=i)
+        #     holdGroup=[]
+        #     for j in group:
+        #         studentgroups=StudentGroup.objects.filter(group=j).select_related('student')
+        #         holdstudents=[]
+        #         for students in studentgroups:
+        #             tickets=Ticket.objects.filter(student__pk=students.pk).only('title','status','category')
+        #             tickethold=[]
+        #             for tick in tickets:
+        #                 tickethold.append({
+        #                     'title':tick.title,
+        #                     'status':tick.status,
+        #                     'category':tick.category
+        #                 })
+        #             groupstudents=StudentGroup.objects.filter(student=students.student).select_related('group')
+        #             groupshold=[]
+        #             for grouping in groupstudents:
+        #                 groupshold.append({
+        #                     'code':grouping.group.code,
+        #                     'type':grouping.group.type,
+        #                     'course_code':grouping.group.course_code.code
+        #                 })
+
+        #             holdstudents.append({
+        #                 'id':students.student.id,
+        #                 'name':students.student.name,
+        #                 'VMS':students.student.VMS,
+        #                 'program_year':students.student.program_year,
+        #                 'group_course':groupshold,
+        #                 'tickets':tickethold
+        #             })
+        #         GroupDict={
+        #             'type':j.type,
+        #             'group_code':j.code,
+        #             'name':j.name,
+        #             'students':holdstudents
+        #         }
+        #         holdGroup.append(GroupDict)
+        #     hold.append({
+        #         'group':holdGroup,
+        #         'code':i.code
+        #     })
+        # return Response(hold)

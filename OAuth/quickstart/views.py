@@ -14,7 +14,9 @@ from pathlib import Path
 import mimetypes
 from django.http import HttpResponse
 from django.db.models import Count
-   
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
+
 class getUser(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -116,35 +118,91 @@ class getGroups(APIView):
 
     def get(self, request):
         if(request.user.user_type=='TA'):
-            groups=Group.objects.filter(group_Ta__TA=request.user)
+            groups=Group.objects.filter(group_Ta__TA=request.user).select_related('course_code')
             serializer=GetGroupSerializer(groups,many=True)
             return Response(serializer.data)
         else:
-            groups=Group.objects.all()
+            groups=Group.objects.all().select_related('course_code')
             serializer=GetGroupSerializer(groups,many=True)
             return Response(serializer.data)
     
 class getStudent(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self, request):
         if(request.user.user_type=='TA'):
             tagroups=Group.objects.filter(group_Ta__TA=request.user)
-            student=Student.objects.filter(student_group__group__in=tagroups).prefetch_related('student_group','Ticket_student').order_by('id')
-            serializer = StudentDetailsSerializerTA(student,many=True)
-            return Response(serializer.data)
+            student=Student.objects.filter(student_group__group__in=tagroups).prefetch_related('student_group','Ticket_student')
+            hold=[]
+            for i in student:
+                tickethold=[]
+                ticket=Ticket.objects.filter(student=i).only('title','status','category')
+                for k in ticket:
+                    tickethold.append({
+                        'title':k.title,
+                        'status':k.status,
+                        'category':k.category
+                    })
+                groupstudents=StudentGroup.objects.filter(student=i).only('group').select_related('group')
+                groupshold=[]
+                for grouping in groupstudents:
+                    groupshold.append({
+                        'code':grouping.group.code,
+                        'type':grouping.group.type,
+                        'course_code':grouping.group.course_code.code
+                    })
+
+                hold.append({
+                    'id':i.id,
+                    'name':i.name,
+                    'VMS':i.VMS,
+                    'program_year':i.program_year,
+                    'group_course':groupshold,
+                    'tickets':tickethold
+                })
+            return Response(hold)
         else:
-            student=Student.objects.all().prefetch_related('student_group','Ticket_student').order_by('id')
-            serializer = StudentDetailsSerializer(student,many=True)
-            return Response(serializer.data)
+            student=Student.objects.all()
+            hold=[]
+            for i in student:
+                tickethold=[]
+                ticket=Ticket.objects.filter(student=i).only('title','status','category')
+                for k in ticket:
+                    tickethold.append({
+                        'title':k.title,
+                        'status':k.status,
+                        'category':k.category
+                    })
+                groupstudents=StudentGroup.objects.filter(student=i).only('group').select_related('group')
+                groupshold=[]
+                for grouping in groupstudents:
+                    groupshold.append({
+                        'code':grouping.group.code,
+                        'type':grouping.group.type,
+                        'course_code':grouping.group.course_code.code
+                    })
+
+                hold.append({
+                    'id':i.id,
+                    'name':i.name,
+                    'VMS':i.VMS,
+                    'program_year':i.program_year,
+                    'group_course':groupshold,
+                    'tickets':tickethold
+                })
+            return Response(hold)
     
 class getStudentTrunc(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self, request):
-        student=Student.objects.all()
-        serializer = StudentSerializer(student,many=True)
-        return Response(serializer.data)
+        if(request.user.user_type=='TA'):
+            tagroups=Group.objects.filter(group_Ta__TA=request.user)
+            student=Student.objects.filter(student_group__group__in=tagroups).only('name','VMS')
+            serializer = StudentSerializer(student,many=True)
+            return Response(serializer.data)
+        else:
+            student=Student.objects.all().only('name','VMS')
+            serializer = StudentSerializer(student,many=True)
+            return Response(serializer.data)
         
 class login(APIView):
     permission_classes = [IsAuthenticated]
@@ -158,14 +216,59 @@ class login(APIView):
         else:
             return Response({"success":f"Already signed up for {request.auth['name']}"})
 
-    
 class getClass(APIView):
     permission_classes = [IsAuthenticated]
 
+    @method_decorator(cache_page(60 * 60 * 12))
     def get(self,request):
-        course=Course.objects.all().prefetch_related('course_group__group_student__student','course_group__group_student__group')
-        serializer=CourseSerializer(course,many=True)
-        return Response(serializer.data)
+        course=Course.objects.all()
+        hold=[]
+        for i in course:
+            each={}
+            each['code']=i.code
+            group=Group.objects.filter(course_code=i)
+            holdGroup=[]
+            for j in group:
+                studentgroups=StudentGroup.objects.filter(group=j).select_related('student')
+                holdstudents=[]
+                for students in studentgroups:
+                    tickets=Ticket.objects.filter(student=students.student).only('title','status','category')
+                    tickethold=[]
+                    for tick in tickets:
+                        tickethold.append({
+                            'title':tick.title,
+                            'status':tick.status,
+                            'category':tick.category
+                        })
+                    groupstudents=StudentGroup.objects.filter(student=students.student).only('group').select_related('group')
+                    groupshold=[]
+                    for grouping in groupstudents:
+                        groupshold.append({
+                            'code':grouping.group.code,
+                            'type':grouping.group.type,
+                            'course_code':grouping.group.course_code.code
+                        })
+
+                    holdstudents.append({
+                        'id':students.student.id,
+                        'name':students.student.name,
+                        'VMS':students.student.VMS,
+                        'program_year':students.student.program_year,
+                        'group_course':groupshold,
+                        'tickets':tickethold
+                    })
+                GroupDict={
+                    'type':j.type,
+                    'group_code':j.code,
+                    'name':j.name,
+                    'students':holdstudents
+                }
+                holdGroup.append(GroupDict)
+            hold.append({
+                'group':holdGroup,
+                'code':i.code
+            })
+        return Response(hold)
     
 class editClass(APIView):
     permission_classes = [IsAuthenticated]
@@ -192,24 +295,25 @@ class deleteClass(APIView):
             stugroup.delete()
 
         return Response({'success':'success'})
-    
+
 class createClass(APIView):
     permission_classes = [IsAuthenticated]
-
+ 
     def post(self, request):
         excel_file = request.FILES['file']
         df= pd.read_excel(excel_file,header=None,engine='openpyxl')
         course_code=df.iloc[2][0].split()[1]
         class_type=df.iloc[3][0].split()[2]
         current_course=Course.objects.filter(code=course_code).first()
+        course_name=request.data['course_name']
         if(not current_course):
-            current_course=Course.objects.create(code=course_code,name=request.data['course_name'])
+            current_course=Course.objects.create(code=course_code,name=course_name)
 
         i=0
         tempgroup=''
         while(i<len(df)):
             if(isinstance(df.iloc[i][0], str) and df.iloc[i][0].startswith('Class Group:')):
-                [tempgroup,created]=Group.objects.get_or_create(code=df.iloc[i][0].split()[2],type=class_type,course_code=current_course)
+                [tempgroup,created]=Group.objects.get_or_create(code=df.iloc[i][0].split()[2],type=class_type,course_code=current_course,name=course_name)
             if(isinstance(df.iloc[i][0], str) and df.iloc[i][0].startswith('No.')):
                 i+=1
                 while(i<len(df) and not pd.isna(df.iloc[i][0])):
