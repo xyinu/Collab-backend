@@ -1,6 +1,5 @@
 from django.urls import path
-from .views import getUser, editAccess,data,getGroups,downloadTaskThreadFile,downloadThreadFile,deleteUser,reopenTask,addStudent,editStudent,downloadFile,downloadTaskFile,DeleteFaq,getStudentTrunc,deleteClass,editClass,TicketCategoryView,FAQCategoryView,reopenTicket,Faq,getUserType,createClass, createTaskThread,login, createAccess, createTask, createTicket, createThread, completeTask,completeTicket,getTask,getClass,getThread, getTicketWithThread,getProf,getStudent,getTAs, getCompletedTask, getCompletedTicketWithThread,count
-
+from .views import getUser, getStudentTA,editAccess,data,getGroups,downloadTaskThreadFile,downloadThreadFile,deleteUser,reopenTask,addStudent,editStudent,downloadFile,downloadTaskFile,DeleteFaq,getStudentTrunc,deleteClass,editClass,TicketCategoryView,FAQCategoryView,reopenTicket,Faq,getUserType,createClass, createTaskThread,login, createAccess, createTask, createTicket, createThread, completeTask,completeTicket,getTask,getClass,getThread, getTicketWithThread,getProf,getStudent,getTAs, getCompletedTask, getCompletedTicketWithThread,count
 app_name = 'quickstart'
 
 urlpatterns = [
@@ -29,6 +28,7 @@ urlpatterns = [
     path('createtaskthread/', createTaskThread.as_view(), name='createTaskThead'),
     path('prof/', getProf.as_view(), name='getProf'),
     path('student/', getStudent.as_view(), name='getStudent'),
+    path('studentTA/', getStudentTA.as_view(), name='getStudentTA'),
     path('addstudent/',addStudent.as_view(),name='addstudent'),
     path('editstudent/', editStudent.as_view(),name='editStudent'),
     path('studenttrunc/', getStudentTrunc.as_view(), name='getStudentTrunc'),
@@ -45,53 +45,3 @@ urlpatterns = [
     path('group/', getGroups.as_view(), name='getGroups'),
     path('data/', data.as_view(), name='data'),
     ]
-
-
-        # course=Course.objects.all()
-        # hold=[]
-        # for i in course:
-        #     each={}
-        #     each['code']=i.code
-        #     group=Group.objects.filter(course_code=i)
-        #     holdGroup=[]
-        #     for j in group:
-        #         studentgroups=StudentGroup.objects.filter(group=j).select_related('student')
-        #         holdstudents=[]
-        #         for students in studentgroups:
-        #             tickets=Ticket.objects.filter(student__pk=students.pk).only('title','status','category')
-        #             tickethold=[]
-        #             for tick in tickets:
-        #                 tickethold.append({
-        #                     'title':tick.title,
-        #                     'status':tick.status,
-        #                     'category':tick.category
-        #                 })
-        #             groupstudents=StudentGroup.objects.filter(student=students.student).select_related('group')
-        #             groupshold=[]
-        #             for grouping in groupstudents:
-        #                 groupshold.append({
-        #                     'code':grouping.group.code,
-        #                     'type':grouping.group.type,
-        #                     'course_code':grouping.group.course_code.code
-        #                 })
-
-        #             holdstudents.append({
-        #                 'id':students.student.id,
-        #                 'name':students.student.name,
-        #                 'VMS':students.student.VMS,
-        #                 'program_year':students.student.program_year,
-        #                 'group_course':groupshold,
-        #                 'tickets':tickethold
-        #             })
-        #         GroupDict={
-        #             'type':j.type,
-        #             'group_code':j.code,
-        #             'name':j.name,
-        #             'students':holdstudents
-        #         }
-        #         holdGroup.append(GroupDict)
-        #     hold.append({
-        #         'group':holdGroup,
-        #         'code':i.code
-        #     })
-        # return Response(hold)

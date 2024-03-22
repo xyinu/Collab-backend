@@ -7,15 +7,13 @@ from django.utils import timezone
 import pandas as pd 
 from django.db.models import Q
 from rest_framework.permissions import IsAuthenticated
-from quickstart.func import send_ticket,send_access,send_task,send_thread,send_ticket_approve,send_completed_ticket,send_completed_task
-from quickstart.management.azure_file_controller import download_blob, upload_file_to_blob
+from App.management.azure_file_controller import download_blob, upload_file_to_blob
 from django_q.models import Schedule
 from pathlib import Path
 import mimetypes
 from django.http import HttpResponse
 from django.db.models import Count
-from django.views.decorators.cache import cache_page
-from django.utils.decorators import method_decorator
+from django.core.cache import cache
 
 class getUser(APIView):
     permission_classes = [IsAuthenticated]
@@ -125,71 +123,81 @@ class getGroups(APIView):
             groups=Group.objects.all().select_related('course_code')
             serializer=GetGroupSerializer(groups,many=True)
             return Response(serializer.data)
-    
-class getStudent(APIView):
+
+class getStudentTA(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        if(request.user.user_type=='TA'):
-            tagroups=Group.objects.filter(group_Ta__TA=request.user)
-            student=Student.objects.filter(student_group__group__in=tagroups).prefetch_related('student_group','Ticket_student')
-            hold=[]
-            for i in student:
-                tickethold=[]
-                ticket=Ticket.objects.filter(student=i).only('title','status','category')
-                for k in ticket:
-                    tickethold.append({
-                        'title':k.title,
-                        'status':k.status,
-                        'category':k.category
-                    })
-                groupstudents=StudentGroup.objects.filter(student=i).only('group').select_related('group')
-                groupshold=[]
-                for grouping in groupstudents:
-                    groupshold.append({
-                        'code':grouping.group.code,
-                        'type':grouping.group.type,
-                        'course_code':grouping.group.course_code.code
-                    })
-
-                hold.append({
-                    'id':i.id,
-                    'name':i.name,
-                    'VMS':i.VMS,
-                    'program_year':i.program_year,
-                    'group_course':groupshold,
-                    'tickets':tickethold
+        tagroups=Group.objects.filter(group_Ta__TA=request.user)
+        student=Student.objects.filter(student_group__group__in=tagroups).only('id','name','VMS','program_year').prefetch_related('student_group','Ticket_student')
+        hold=[]
+        for i in student:
+            tickethold=[]
+            ticket=Ticket.objects.filter(student=i).only('title','status','category')
+            for k in ticket:
+                tickethold.append({
+                    'title':k.title,
+                    'status':k.status,
+                    'category':k.category
                 })
-            return Response(hold)
-        else:
-            student=Student.objects.all()
-            hold=[]
-            for i in student:
-                tickethold=[]
-                ticket=Ticket.objects.filter(student=i).only('title','status','category')
-                for k in ticket:
-                    tickethold.append({
-                        'title':k.title,
-                        'status':k.status,
-                        'category':k.category
-                    })
-                groupstudents=StudentGroup.objects.filter(student=i).only('group').select_related('group')
-                groupshold=[]
-                for grouping in groupstudents:
-                    groupshold.append({
-                        'code':grouping.group.code,
-                        'type':grouping.group.type,
-                        'course_code':grouping.group.course_code.code
-                    })
-
-                hold.append({
-                    'id':i.id,
-                    'name':i.name,
-                    'VMS':i.VMS,
-                    'program_year':i.program_year,
-                    'group_course':groupshold,
-                    'tickets':tickethold
+            groupstudents=StudentGroup.objects.filter(student=i).only('group').select_related('group')
+            groupshold=[]
+            for grouping in groupstudents:
+                groupshold.append({
+                    'code':grouping.group.code,
+                    'type':grouping.group.type,
+                    'course_code':grouping.group.course_code.code
                 })
-            return Response(hold)
+
+            hold.append({
+                'id':i.id,
+                'name':i.name,
+                'VMS':i.VMS,
+                'program_year':i.program_year,
+                'group_course':groupshold,
+                'tickets':tickethold
+            })
+        return Response(hold)
+ 
+class getStudent(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        checkStudent=cache.get('student')
+        if(checkStudent):
+            return Response(checkStudent)
+        student=Student.objects.all()
+        hold=[]
+        for i in student:
+            tickethold=[]
+            ticket=Ticket.objects.filter(student=i).only('title','status','category')
+            for k in ticket:
+                tickethold.append({
+                    'title':k.title,
+                    'status':k.status,
+                    'category':k.category
+                })
+            groupstudents=StudentGroup.objects.filter(student=i).only('group').select_related('group')
+            groupshold=[]
+            for grouping in groupstudents:
+                groupshold.append({
+                    'code':grouping.group.code,
+                    'type':grouping.group.type,
+                    'course_code':grouping.group.course_code.code
+                })
+
+            hold.append({
+                'id':i.id,
+                'name':i.name,
+                'VMS':i.VMS,
+                'program_year':i.program_year,
+                'group_course':groupshold,
+                'tickets':tickethold,
+                'student_type':i.student_type,
+                'course_type':i.course_type,
+                'nationality':i.nationality
+            })
+        cache.set('student',hold,60*60*12)    
+        return Response(hold)
     
 class getStudentTrunc(APIView):
     permission_classes = [IsAuthenticated]
@@ -219,8 +227,10 @@ class login(APIView):
 class getClass(APIView):
     permission_classes = [IsAuthenticated]
 
-    @method_decorator(cache_page(60 * 60 * 12))
     def get(self,request):
+        checkClass=cache.get('class')
+        if(checkClass):
+            return Response(checkClass)
         course=Course.objects.all()
         hold=[]
         for i in course:
@@ -255,7 +265,10 @@ class getClass(APIView):
                         'VMS':students.student.VMS,
                         'program_year':students.student.program_year,
                         'group_course':groupshold,
-                        'tickets':tickethold
+                        'tickets':tickethold,
+                        'student_type':students.student.student_type,
+                        'course_type':students.student.course_type,
+                        'nationality':students.student.nationality
                     })
                 GroupDict={
                     'type':j.type,
@@ -268,6 +281,7 @@ class getClass(APIView):
                 'group':holdGroup,
                 'code':i.code
             })
+        cache.set('class',hold,60*60*12)
         return Response(hold)
     
 class editClass(APIView):
@@ -340,6 +354,7 @@ class createClass(APIView):
                     )
                     i+=1
             i+=1
+        cache.clear()
         return Response({'success':'success'})
 
 class deleteUser(APIView):
